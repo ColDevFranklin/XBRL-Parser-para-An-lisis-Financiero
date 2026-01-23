@@ -1,0 +1,108 @@
+{
+  "NetIncome": {
+    "primary": "NetIncomeLoss",
+    "aliases": [
+      "ProfitLoss",
+      "NetIncome",
+      "NetIncomeLossAvailableToCommonStockholdersBasic"
+    ],
+    "description": "Net income after all expenses and taxes",
+    "xbrl_namespace": "us-gaap"
+  },
+  "Equity": {
+    "primary": "StockholdersEquity",
+    "aliases": [
+      "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+      "ShareholdersEquity",
+      "PartnersCapital"
+    ],
+    "description": "Total shareholders equity",
+    "xbrl_namespace": "us-gaap"
+  },
+  "Assets": {
+    "primary": "Assets",
+    "aliases": ["AssetsTotal"],
+    "description": "Total assets",
+    "xbrl_namespace": "us-gaap"
+  },
+  "Liabilities": {
+    "primary": "Liabilities",
+    "aliases": ["LiabilitiesTotal", "LiabilitiesAndStockholdersEquity"],
+    "description": "Total liabilities",
+    "xbrl_namespace": "us-gaap"
+  },
+  "Revenue": {
+    "primary": "RevenueFromContractWithCustomerExcludingAssessedTax",
+    "aliases": [
+      "Revenues",
+      "SalesRevenueNet",
+      "RevenueFromContractWithCustomer",
+      "SalesRevenueGoodsNet"
+    ],
+    "description": "Total revenue",
+    "xbrl_namespace": "us-gaap"
+  },
+  "CurrentAssets": {
+    "primary": "AssetsCurrent",
+    "aliases": [],
+    "description": "Current assets",
+    "xbrl_namespace": "us-gaap"
+  },
+  "CashAndEquivalents": {
+    "primary": "CashAndCashEquivalentsAtCarryingValue",
+    "aliases": ["Cash", "CashCashEquivalentsAndShortTermInvestments"],
+    "description": "Cash and cash equivalents",
+    "xbrl_namespace": "us-gaap"
+  },
+  "LongTermDebt": {
+    "primary": "LongTermDebt",
+    "aliases": [
+      "LongTermDebtNoncurrent",
+      "LongTermDebtAndCapitalLeaseObligations"
+    ],
+    "description": "Long-term debt",
+    "xbrl_namespace": "us-gaap"
+  },
+  "CurrentLiabilities": {
+    "primary": "LiabilitiesCurrent",
+    "aliases": [],
+    "description": "Current liabilities",
+    "xbrl_namespace": "us-gaap"
+  },
+  "CostOfRevenue": {
+    "primary": "CostOfRevenue",
+    "aliases": ["CostOfGoodsAndServicesSold", "CostOfGoodsSold"],
+    "description": "Cost of revenue/goods sold",
+    "xbrl_namespace": "us-gaap"
+  },
+  "GrossProfit": {
+    "primary": "GrossProfit",
+    "aliases": [],
+    "description": "Gross profit",
+    "xbrl_namespace": "us-gaap"
+  },
+  "OperatingIncome": {
+    "primary": "OperatingIncomeLoss",
+    "aliases": ["OperatingIncome"],
+    "description": "Operating income",
+    "xbrl_namespace": "us-gaap"
+  },
+  "InterestExpense": {
+    "primary": "InterestExpense",
+    "aliases": ["InterestExpenseDebt"],
+    "description": "Interest expense",
+    "xbrl_namespace": "us-gaap"
+  },
+  "OperatingCashFlow": {
+    "primary": "NetCashProvidedByUsedInOperatingActivities",
+    "aliases": ["CashProvidedByUsedInOperatingActivities"],
+    "description": "Operating cash flow",
+    "xbrl_namespace": "us-gaap"
+  },
+  "CapitalExpenditures": {
+    "primary": "PaymentsToAcquirePropertyPlantAndEquipment",
+    "aliases": ["CapitalExpenditures", "PaymentsForCapitalImprovements"],
+    "description": "Capital expenditures",
+    "xbrl_namespace": "us-gaap"
+  }
+}

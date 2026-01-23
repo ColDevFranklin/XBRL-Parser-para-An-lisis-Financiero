@@ -9,13 +9,18 @@ Cambios Sprint 2:
 - Usa contextos específicos para Balance (instant) vs Income (duration)
 - NUEVO: extract_timeseries() para análisis multi-year
 
+Cambios Sprint 3:
+- Integra TaxonomyResolver para portabilidad cross-company
+- Elimina dependencia de TAG_MAPPING hardcodeado
+- Resuelve tags automáticamente según empresa
+
 Cambios Transparency Engine:
 - Retorna SourceTrace en lugar de floats
 - Metadata completa de origen XBRL (tag, context, timestamp)
 - Trazabilidad end-to-end para analistas
 
 Author: @franklin
-Sprint: 2 - Context Management + Transparency + Time-Series
+Sprint: 3 - Taxonomy Mapping + 25 Métricas
 """
 
 from lxml import etree
@@ -29,11 +34,17 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from backend.engines.context_manager import ContextManager
 from backend.engines.tracked_metric import SourceTrace
+from backend.parsers.taxonomy_resolver import TaxonomyResolver
 
 
 class XBRLParser:
     """
     Parser para archivos XBRL de la SEC con context filtering y trazabilidad.
+
+    SPRINT 3 FEATURES:
+    - TaxonomyResolver para cross-company compatibility
+    - Auto-resolución de tags XBRL
+    - Portabilidad entre Apple, Microsoft, Berkshire, etc.
 
     Uso:
         parser = XBRLParser('apple.xml')
@@ -43,7 +54,7 @@ class XBRLParser:
         # Acceder a valores con trazabilidad
         assets = data['balance_sheet']['Assets']
         print(assets.raw_value)  # Float value
-        print(assets.xbrl_tag)   # "us-gaap:Assets"
+        print(assets.xbrl_tag)   # "Assets" (auto-resuelto)
         print(assets.context_id) # "c-20"
 
         # Time-series
@@ -51,6 +62,11 @@ class XBRLParser:
         print(timeseries[2025]['Revenue'])  # SourceTrace object
     """
 
+    # ========================================================================
+    # DEPRECADO: TAG_MAPPING será eliminado en Sprint 4
+    # Mantenido SOLO para compatibilidad con tests antiguos
+    # NUEVO código usa TaxonomyResolver en su lugar
+    # ========================================================================
     TAG_MAPPING = {
         # Balance Sheet
         'Assets': ['Assets', 'AssetsTotal'],
@@ -89,10 +105,13 @@ class XBRLParser:
         self.root = None
         self.namespaces = {}
         self.context_mgr = None
+        self.resolver = None  # ← NUEVO Sprint 3: TaxonomyResolver
 
     def load(self) -> bool:
         """
-        Carga el archivo XBRL e inicializa ContextManager.
+        Carga el archivo XBRL e inicializa ContextManager y TaxonomyResolver.
+
+        NUEVO Sprint 3: Inicializa TaxonomyResolver para portabilidad
 
         Returns:
             bool: True si carga exitosa
@@ -105,10 +124,14 @@ class XBRLParser:
             # Inicializar ContextManager
             self.context_mgr = ContextManager(self.tree)
 
+            # ← NUEVO Sprint 3: Inicializar TaxonomyResolver
+            self.resolver = TaxonomyResolver()
+
             print(f"✓ Archivo cargado: {self.filepath}")
             print(f"  Namespaces encontrados: {len(self.namespaces)}")
             print(f"  Año fiscal: {self.context_mgr.fiscal_year}")
             print(f"  Fiscal year-end: {self.context_mgr.fiscal_year_end}")
+            print(f"  TaxonomyResolver: {len(self.resolver.list_concepts())} concepts")
 
             return True
         except Exception as e:
@@ -124,42 +147,55 @@ class XBRLParser:
         """
         Extrae valor de un campo filtrando por contexto específico.
 
-        CAMBIO CLAVE: Retorna SourceTrace con metadata completa.
+        CAMBIO SPRINT 3: Usa TaxonomyResolver en lugar de TAG_MAPPING
 
         Args:
-            field_name: Nombre del campo en TAG_MAPPING
+            field_name: Nombre del concepto contable (e.g., "NetIncome", "Assets", "Equity")
             target_context: ID del contexto a usar (e.g., 'c-20')
             section: 'balance_sheet', 'income_statement', 'cash_flow'
 
         Returns:
             SourceTrace: Objeto con valor + metadata, o None si no existe
+
+        Example:
+            # ANTES (Sprint 2):
+            # field_name = 'NetIncomeLoss'  (hardcoded tag)
+
+            # AHORA (Sprint 3):
+            # field_name = 'NetIncome'  (concepto abstracto)
+            # resolver.resolve() → 'NetIncomeLoss' para Apple
+            #                   → 'ProfitLoss' para otra empresa
         """
-        if field_name not in self.TAG_MAPPING:
+        try:
+            # ← NUEVO Sprint 3: Usar TaxonomyResolver
+            tag_name = self.resolver.resolve(field_name, self.tree)
+        except ValueError:
+            # Concepto no encontrado en documento XBRL
+            # (puede ser normal, no todas las empresas reportan todos los campos)
             return None
 
-        # Buscar cada tag alternativo
-        for tag_name in self.TAG_MAPPING[field_name]:
-            xpath = f".//*[local-name()='{tag_name}'][@contextRef='{target_context}']"
-            elements = self.root.xpath(xpath)
+        # Buscar el tag resuelto en el contexto específico
+        xpath = f".//*[local-name()='{tag_name}'][@contextRef='{target_context}']"
+        elements = self.root.xpath(xpath)
 
-            for elem in elements:
-                if elem.text and elem.text.strip():
-                    try:
-                        raw_value = float(elem.text)
+        for elem in elements:
+            if elem.text and elem.text.strip():
+                try:
+                    raw_value = float(elem.text)
 
-                        if raw_value > 1000:  # Filtro básico
-                            # NUEVO: Crear SourceTrace
-                            trace = SourceTrace(
-                                xbrl_tag=tag_name,  # Tag sin namespace para simplicidad
-                                raw_value=raw_value,
-                                context_id=target_context,
-                                extracted_at=datetime.now(),
-                                section=section
-                            )
-                            return trace
+                    if raw_value > 1000:  # Filtro básico para valores grandes
+                        # Crear SourceTrace con metadata completa
+                        trace = SourceTrace(
+                            xbrl_tag=tag_name,  # Tag resuelto (sin namespace)
+                            raw_value=raw_value,
+                            context_id=target_context,
+                            extracted_at=datetime.now(),
+                            section=section
+                        )
+                        return trace
 
-                    except ValueError:
-                        continue
+                except ValueError:
+                    continue
 
         return None
 
@@ -177,6 +213,8 @@ class XBRLParser:
         """
         Extrae Balance Sheet usando contexto <instant> consolidado.
 
+        CAMBIO Sprint 3: Field names ahora son conceptos abstractos
+
         Returns:
             Dict con SourceTrace por cada campo
         """
@@ -190,8 +228,9 @@ class XBRLParser:
             print(f"  ✗ Error: {e}")
             return {}
 
+        # ← NUEVO Sprint 3: Conceptos abstractos (no tags específicos)
         fields = [
-            'Assets', 'Liabilities', 'StockholdersEquity',
+            'Assets', 'Liabilities', 'Equity',  # Cambiado de 'StockholdersEquity'
             'CurrentAssets', 'CashAndEquivalents',
             'LongTermDebt', 'CurrentLiabilities'
         ]
@@ -210,11 +249,11 @@ class XBRLParser:
         if all([
             balance.get('Assets'),
             balance.get('Liabilities'),
-            balance.get('StockholdersEquity')
+            balance.get('Equity')
         ]):
             assets = balance['Assets'].raw_value
             liabilities = balance['Liabilities'].raw_value
-            equity = balance['StockholdersEquity'].raw_value
+            equity = balance['Equity'].raw_value
             calculated = liabilities + equity
             diff_pct = abs(assets - calculated) / assets * 100
 
@@ -234,6 +273,8 @@ class XBRLParser:
         """
         Extrae Income Statement usando contexto <duration> anual.
 
+        CAMBIO Sprint 3: Field names ahora son conceptos abstractos
+
         Returns:
             Dict con SourceTrace por cada campo
         """
@@ -246,9 +287,10 @@ class XBRLParser:
             print(f"  ✗ Error: {e}")
             return {}
 
+        # ← NUEVO Sprint 3: Conceptos abstractos
         fields = [
-            'Revenues', 'CostOfRevenue', 'GrossProfit',
-            'OperatingIncomeLoss', 'NetIncomeLoss', 'InterestExpense'
+            'Revenue', 'CostOfRevenue', 'GrossProfit',  # Cambiado de 'Revenues'
+            'OperatingIncome', 'NetIncome', 'InterestExpense'  # Cambiado nombres
         ]
 
         income = {}
@@ -307,7 +349,7 @@ class XBRLParser:
         }
 
     # ========================================================================
-    # NUEVO: TIME-SERIES EXTRACTION (Sprint 2 - Final)
+    # TIME-SERIES EXTRACTION (Sprint 2)
     # ========================================================================
 
     def extract_timeseries(self, years: int = 5) -> Dict[int, Dict[str, SourceTrace]]:
@@ -340,7 +382,7 @@ class XBRLParser:
             >>> timeseries = parser.extract_timeseries(years=3)
             >>> len(timeseries)
             3
-            >>> timeseries[2025]['Revenues'].raw_value
+            >>> timeseries[2025]['Revenue'].raw_value
             391035000000.0
         """
         if not self.context_mgr:
@@ -370,7 +412,7 @@ class XBRLParser:
                 year_data = self._extract_year_data(year)
 
                 # Validar que extrajo al menos datos básicos
-                if year_data.get('Assets') and year_data.get('Revenues'):
+                if year_data.get('Assets') and year_data.get('Revenue'):
                     result[year] = year_data
                     print(f"     ✓ {len(year_data)} campos extraídos")
                 else:
@@ -386,6 +428,8 @@ class XBRLParser:
     def _extract_year_data(self, year: int) -> Dict[str, SourceTrace]:
         """
         Extrae datos financieros de un año fiscal específico.
+
+        CAMBIO Sprint 3: Usa conceptos abstractos
 
         Args:
             year: Año fiscal (ej: 2025)
@@ -408,12 +452,12 @@ class XBRLParser:
         year_data = {}
 
         # ====================================================================
-        # BALANCE SHEET (instant context)
+        # BALANCE SHEET (instant context) - Conceptos abstractos Sprint 3
         # ====================================================================
         balance_fields = {
             'Assets': 'balance_sheet',
             'Liabilities': 'balance_sheet',
-            'StockholdersEquity': 'balance_sheet',
+            'Equity': 'balance_sheet',  # Cambiado de 'StockholdersEquity'
             'CurrentAssets': 'balance_sheet',
             'CurrentLiabilities': 'balance_sheet',
             'LongTermDebt': 'balance_sheet',
@@ -430,12 +474,12 @@ class XBRLParser:
                 year_data[field_name] = value
 
         # ====================================================================
-        # INCOME STATEMENT (duration context)
+        # INCOME STATEMENT (duration context) - Conceptos abstractos Sprint 3
         # ====================================================================
         income_fields = {
-            'Revenues': 'income_statement',
-            'NetIncomeLoss': 'income_statement',
-            'OperatingIncomeLoss': 'income_statement',
+            'Revenue': 'income_statement',  # Cambiado de 'Revenues'
+            'NetIncome': 'income_statement',  # Cambiado de 'NetIncomeLoss'
+            'OperatingIncome': 'income_statement',  # Cambiado de 'OperatingIncomeLoss'
             'GrossProfit': 'income_statement',
             'CostOfRevenue': 'income_statement',
             'InterestExpense': 'income_statement',
@@ -477,10 +521,10 @@ if __name__ == "__main__":
 
     if parser.load():
         # ====================================================================
-        # TEST 1: Extracción estándar (Sprint 1)
+        # TEST 1: Extracción estándar (Sprint 3 - TaxonomyResolver)
         # ====================================================================
         print("\n" + "="*60)
-        print("TEST 1: EXTRACCIÓN ESTÁNDAR (AÑO MÁS RECIENTE)")
+        print("TEST 1: EXTRACCIÓN CON TAXONOMY RESOLVER")
         print("="*60)
 
         data = parser.extract_all()
@@ -491,10 +535,10 @@ if __name__ == "__main__":
             if value is not None
         )
 
-        print(f"\n📊 Campos extraidos: {total_fields}/15")
+        print(f"\n📊 Campos extraidos: {total_fields}")
 
-        required_fields = ['Assets', 'Liabilities', 'StockholdersEquity',
-                          'Revenues', 'NetIncomeLoss']
+        required_fields = ['Assets', 'Liabilities', 'Equity',
+                          'Revenue', 'NetIncome']
 
         extracted_count = 0
         for field in required_fields:
@@ -508,20 +552,20 @@ if __name__ == "__main__":
         # Validar balance
         bs = data['balance_sheet']
         balance_ok = False
-        if all([bs.get('Assets'), bs.get('Liabilities'), bs.get('StockholdersEquity')]):
+        if all([bs.get('Assets'), bs.get('Liabilities'), bs.get('Equity')]):
             assets = bs['Assets'].raw_value
             liabilities = bs['Liabilities'].raw_value
-            equity = bs['StockholdersEquity'].raw_value
+            equity = bs['Equity'].raw_value
 
             diff_pct = abs(assets - (liabilities + equity)) / assets * 100
             balance_ok = diff_pct < 1
             print(f"✓ Balance cuadra: {'Si' if balance_ok else 'No'} ({diff_pct:.2f}% diferencia)")
 
         # ====================================================================
-        # TEST 2: Time-Series (Sprint 2)
+        # TEST 2: Time-Series (Sprint 2 + Sprint 3)
         # ====================================================================
         print("\n" + "="*60)
-        print("TEST 2: TIME-SERIES EXTRACTION (MULTI-YEAR)")
+        print("TEST 2: TIME-SERIES CON TAXONOMY RESOLVER")
         print("="*60)
 
         timeseries = parser.extract_timeseries(years=4)
@@ -535,18 +579,18 @@ if __name__ == "__main__":
             print(f"      Campos: {len(year_data)}")
 
             # Mostrar campos principales
-            if year_data.get('Revenues'):
-                print(f"      Revenue: ${year_data['Revenues'].raw_value:,.0f}")
-            if year_data.get('NetIncomeLoss'):
-                print(f"      Net Income: ${year_data['NetIncomeLoss'].raw_value:,.0f}")
+            if year_data.get('Revenue'):
+                print(f"      Revenue: ${year_data['Revenue'].raw_value:,.0f}")
+            if year_data.get('NetIncome'):
+                print(f"      Net Income: ${year_data['NetIncome'].raw_value:,.0f}")
             if year_data.get('Assets'):
                 print(f"      Assets: ${year_data['Assets'].raw_value:,.0f}")
 
             # Validar balance para este año
-            if all(k in year_data for k in ['Assets', 'Liabilities', 'StockholdersEquity']):
+            if all(k in year_data for k in ['Assets', 'Liabilities', 'Equity']):
                 a = year_data['Assets'].raw_value
                 l = year_data['Liabilities'].raw_value
-                e = year_data['StockholdersEquity'].raw_value
+                e = year_data['Equity'].raw_value
                 diff = abs(a - (l + e)) / a * 100
                 print(f"      Balance check: {diff:.2f}% diff {'✓' if diff < 1 else '✗'}")
 
@@ -556,27 +600,29 @@ if __name__ == "__main__":
         print(f"\n⏱️  Tiempo de procesamiento: {processing_time:.2f} segundos")
 
         # ====================================================================
-        # DEMOSTRACIÓN DE TRAZABILIDAD
+        # DEMOSTRACIÓN DE TRAZABILIDAD + TAXONOMY RESOLVER
         # ====================================================================
         if bs.get('Assets'):
             print("\n" + "="*60)
-            print("🔍 TRAZABILIDAD EJEMPLO (Assets - Año más reciente)")
+            print("🔍 TRAZABILIDAD CON TAXONOMY RESOLVER")
             print("="*60)
             assets_trace = bs['Assets']
-            print(f"   Tag XBRL: {assets_trace.xbrl_tag}")
+            print(f"   Concepto abstracto: Assets")
+            print(f"   Tag XBRL resuelto: {assets_trace.xbrl_tag}")
             print(f"   Valor: ${assets_trace.raw_value:,.0f}")
             print(f"   Contexto: {assets_trace.context_id}")
             print(f"   Sección: {assets_trace.section}")
             print(f"   Timestamp: {assets_trace.extracted_at.isoformat()}")
 
         # ====================================================================
-        # VALIDACIÓN FINAL
+        # VALIDACIÓN FINAL SPRINT 3
         # ====================================================================
         print("\n" + "="*60)
-        print("✅ VALIDACIÓN SPRINT 2 COMPLETO")
+        print("✅ VALIDACIÓN SPRINT 3 - TAXONOMY RESOLVER")
         print("="*60)
 
         checks = {
+            "TaxonomyResolver cargado": parser.resolver is not None,
             "Extracción estándar (5+ campos)": extracted_count >= 5,
             "Balance cuadra (<1%)": balance_ok,
             "Time-series (3+ años)": len(timeseries) >= 3,
@@ -590,13 +636,13 @@ if __name__ == "__main__":
             print(f"   {status} {check}")
 
         if all_passed:
-            print("\n🎯 SPRINT 2 COMPLETADO AL 100%")
-            print("   ✓ Parser con ContextManager integrado")
-            print("   ✓ SourceTrace con metadata completa")
+            print("\n🎯 SPRINT 3 - TAXONOMY RESOLVER INTEGRADO")
+            print("   ✓ TaxonomyResolver funcional")
+            print("   ✓ Cross-company compatibility ready")
+            print("   ✓ Conceptos abstractos (no tags hardcoded)")
             print("   ✓ Time-series multi-year funcional")
-            print("   ✓ Balance sheet validation")
             print(f"   ✓ Performance óptima ({processing_time:.2f}s)")
-            print("\n📋 LISTO PARA: Sprint 3 (25 Métricas + Factory Pattern)")
+            print("\n📋 LISTO PARA: Implementar 24 métricas restantes")
         else:
             print("\n⚠️  REVISAR ISSUES:")
             for check, passed in checks.items():
