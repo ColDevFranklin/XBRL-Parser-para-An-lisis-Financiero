@@ -3,10 +3,12 @@
 """
 Test de regresión: Apple 10-K
 Validación Sprint 2: ContextManager elimina duplicados
+Validación Transparency: SourceTrace con metadata completa
 """
 import sys
 sys.path.insert(0, '/home/h4ckio/Documentos/projects')
 from backend.parsers.xbrl_parser import XBRLParser
+from backend.engines.tracked_metric import SourceTrace
 
 
 def test_apple_parsing_succeeds():
@@ -31,27 +33,33 @@ def test_apple_balance_sheet_equation():
     Assets = Liabilities + Equity (±1%)
 
     Sprint 2: Debe mejorar precisión vs Sprint 1
+    Transparency: Usa SourceTrace.raw_value
     """
     parser = XBRLParser('data/apple_10k_xbrl.xml')
     parser.load()
     data = parser.extract_all()
 
     balance = data['balance_sheet']
-    assets = balance.get('Assets')
-    liabilities = balance.get('Liabilities')
-    equity = balance.get('StockholdersEquity')
+    assets_trace = balance.get('Assets')
+    liabilities_trace = balance.get('Liabilities')
+    equity_trace = balance.get('StockholdersEquity')
 
     # Validar que campos existen
-    assert assets is not None, "Assets no extraído"
-    assert liabilities is not None, "Liabilities no extraído"
-    assert equity is not None, "Equity no extraído"
+    assert assets_trace is not None, "Assets no extraído"
+    assert liabilities_trace is not None, "Liabilities no extraído"
+    assert equity_trace is not None, "Equity no extraído"
+
+    # CAMBIO: Extraer raw_value de SourceTrace
+    assets = assets_trace.raw_value
+    liabilities = liabilities_trace.raw_value
+    equity = equity_trace.raw_value
 
     # Validar ecuación contable
     left_side = assets
     right_side = liabilities + equity
     diff_pct = abs(left_side - right_side) / left_side * 100
 
-    print(f"\n--- Apple Balance Sheet (Sprint 2) ---")
+    print(f"\n--- Apple Balance Sheet (Sprint 2 + Transparency) ---")
     print(f"Assets:      ${assets:>15,.0f}")
     print(f"Liabilities: ${liabilities:>15,.0f}")
     print(f"Equity:      ${equity:>15,.0f}")
@@ -64,9 +72,10 @@ def test_apple_balance_sheet_equation():
 def test_apple_no_duplicate_values():
     """
     NUEVO Sprint 2: Validar que NO hay valores duplicados.
+    NUEVO Transparency: Validar que son SourceTrace (no floats)
 
     Con ContextManager, cada campo debe tener UN SOLO valor
-    (del contexto consolidado).
+    (del contexto consolidado) encapsulado en SourceTrace.
     """
     parser = XBRLParser('data/apple_10k_xbrl.xml')
     parser.load()
@@ -82,19 +91,22 @@ def test_apple_no_duplicate_values():
     assert balance_ctx == 'c-20'  # Dato real del diagnóstico
     assert income_ctx == 'c-1'
 
-    # Extraer valores - deben ser únicos
+    # Extraer valores - deben ser SourceTrace (no listas ni floats)
     data = parser.extract_all()
 
-    # Todos los valores deben ser float (no listas)
+    # CAMBIO: Todos los valores deben ser SourceTrace
     for section_name, section_data in data.items():
         for field_name, value in section_data.items():
             if value is not None:
-                assert isinstance(value, float), \
-                    f"{section_name}.{field_name} debe ser float, no {type(value)}"
+                assert isinstance(value, SourceTrace), \
+                    f"{section_name}.{field_name} debe ser SourceTrace, no {type(value)}"
 
 
 def test_apple_15_fields():
-    """Verificar extracción de 15 campos core"""
+    """
+    Verificar extracción de 15 campos core.
+    Transparency: Validar que todos tienen metadata completa.
+    """
     parser = XBRLParser('data/apple_10k_xbrl.xml')
     parser.load()
     data = parser.extract_all()
@@ -125,9 +137,150 @@ def test_apple_15_fields():
         else:
             missing.append(field)
 
-    print(f"\n--- Apple: Extracción de Campos (Sprint 2) ---")
+    print(f"\n--- Apple: Extracción de Campos (Sprint 2 + Transparency) ---")
     print(f"Extraídos: {len(extracted)}/15")
     if missing:
         print(f"Faltantes: {missing}")
 
     assert len(extracted) >= 14, f"Muy pocos campos: {len(extracted)}/15"
+
+
+# ============================================================================
+# NUEVOS TESTS: Transparency Engine
+# ============================================================================
+
+def test_apple_source_trace_metadata():
+    """
+    NUEVO: Validar que SourceTrace contiene metadata completa.
+
+    Cada campo extraído debe tener:
+    - xbrl_tag
+    - raw_value
+    - context_id
+    - extracted_at
+    - section
+    """
+    parser = XBRLParser('data/apple_10k_xbrl.xml')
+    parser.load()
+
+    balance = parser.extract_balance_sheet()
+    assets_trace = balance['Assets']
+
+    print(f"\n--- Apple Assets SourceTrace ---")
+    print(f"XBRL Tag:    {assets_trace.xbrl_tag}")
+    print(f"Raw Value:   ${assets_trace.raw_value:,.0f}")
+    print(f"Context ID:  {assets_trace.context_id}")
+    print(f"Extracted:   {assets_trace.extracted_at.isoformat()}")
+    print(f"Section:     {assets_trace.section}")
+
+    # Validar todos los campos
+    assert assets_trace.xbrl_tag is not None
+    assert assets_trace.raw_value > 0
+    assert assets_trace.context_id == 'c-20'
+    assert assets_trace.extracted_at is not None
+    assert assets_trace.section == 'balance_sheet'
+
+
+def test_apple_source_trace_serialization():
+    """
+    NUEVO: Validar que SourceTrace puede serializarse a dict.
+
+    Esto es crítico para APIs y almacenamiento.
+    """
+    parser = XBRLParser('data/apple_10k_xbrl.xml')
+    parser.load()
+
+    income = parser.extract_income_statement()
+    revenue_trace = income['Revenues']
+
+    # Serializar
+    data = revenue_trace.to_dict()
+
+    print(f"\n--- Apple Revenues Serialized ---")
+    import json
+    print(json.dumps(data, indent=2))
+
+    # Validar estructura
+    assert 'xbrl_tag' in data
+    assert 'raw_value' in data
+    assert 'context_id' in data
+    assert 'extracted_at' in data
+    assert 'section' in data
+
+    # Validar valores
+    assert data['section'] == 'income_statement'
+    assert data['context_id'] == 'c-1'
+    assert data['raw_value'] > 0
+
+
+def test_apple_trace_consistency_across_sections():
+    """
+    NUEVO: Validar que contextos son consistentes por sección.
+
+    - Balance Sheet → instant context (c-20)
+    - Income Statement → duration context (c-1)
+    - Cash Flow → duration context (c-1)
+    """
+    parser = XBRLParser('data/apple_10k_xbrl.xml')
+    parser.load()
+
+    data = parser.extract_all()
+
+    # Balance Sheet: instant context
+    balance = data['balance_sheet']
+    for field_name, trace in balance.items():
+        if trace is not None:
+            assert trace.context_id == 'c-20', \
+                f"Balance field {field_name} usa contexto incorrecto: {trace.context_id}"
+            assert trace.section == 'balance_sheet'
+
+    # Income Statement: duration context
+    income = data['income_statement']
+    for field_name, trace in income.items():
+        if trace is not None:
+            assert trace.context_id == 'c-1', \
+                f"Income field {field_name} usa contexto incorrecto: {trace.context_id}"
+            assert trace.section == 'income_statement'
+
+    # Cash Flow: duration context (mismo que income)
+    cf = data['cash_flow']
+    for field_name, trace in cf.items():
+        if trace is not None:
+            assert trace.context_id == 'c-1', \
+                f"Cash flow field {field_name} usa contexto incorrecto: {trace.context_id}"
+            assert trace.section == 'cash_flow'
+
+    print(f"\n✓ Contextos consistentes por sección")
+
+
+def test_apple_full_traceability_example():
+    """
+    NUEVO: Demo completo de trazabilidad end-to-end.
+
+    Muestra cómo un analista puede rastrear cada valor
+    de vuelta al XBRL original.
+    """
+    parser = XBRLParser('data/apple_10k_xbrl.xml')
+    parser.load()
+
+    data = parser.extract_all()
+
+    # Ejemplo: Rastrear NetIncomeLoss
+    net_income_trace = data['income_statement']['NetIncomeLoss']
+
+    print(f"\n{'='*60}")
+    print(f"APPLE NET INCOME - FULL TRACEABILITY")
+    print(f"{'='*60}")
+    print(f"Value:        ${net_income_trace.raw_value:,.0f}")
+    print(f"XBRL Tag:     {net_income_trace.xbrl_tag}")
+    print(f"Context:      {net_income_trace.context_id}")
+    print(f"Section:      {net_income_trace.section}")
+    print(f"Extracted:    {net_income_trace.extracted_at.isoformat()}")
+    print(f"\nTo verify in source file:")
+    print(f"  1. Open: data/apple_10k_xbrl.xml")
+    print(f"  2. Search: <{net_income_trace.xbrl_tag} contextRef=\"{net_income_trace.context_id}\">")
+    print(f"  3. Compare: {net_income_trace.raw_value}")
+    print(f"{'='*60}\n")
+
+    # Este test siempre pasa - es para demostración
+    assert True
