@@ -7,6 +7,7 @@ Cambios Sprint 2:
 - Integra ContextManager para filtrar contextos consolidados
 - Elimina valores duplicados de segmentos
 - Usa contextos específicos para Balance (instant) vs Income (duration)
+- NUEVO: extract_timeseries() para análisis multi-year
 
 Cambios Transparency Engine:
 - Retorna SourceTrace en lugar de floats
@@ -14,12 +15,12 @@ Cambios Transparency Engine:
 - Trazabilidad end-to-end para analistas
 
 Author: @franklin
-Sprint: 2 - Context Management + Transparency
+Sprint: 2 - Context Management + Transparency + Time-Series
 """
 
 from lxml import etree
-from typing import Dict, Optional, List
-from datetime import datetime  # NUEVO
+from typing import Dict, Optional, List, Any
+from datetime import datetime
 import time
 import sys
 import os
@@ -27,7 +28,7 @@ import os
 # Add backend to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from backend.engines.context_manager import ContextManager
-from backend.engines.tracked_metric import SourceTrace  # NUEVO
+from backend.engines.tracked_metric import SourceTrace
 
 
 class XBRLParser:
@@ -44,6 +45,10 @@ class XBRLParser:
         print(assets.raw_value)  # Float value
         print(assets.xbrl_tag)   # "us-gaap:Assets"
         print(assets.context_id) # "c-20"
+
+        # Time-series
+        timeseries = parser.extract_timeseries(years=4)
+        print(timeseries[2025]['Revenue'])  # SourceTrace object
     """
 
     TAG_MAPPING = {
@@ -114,8 +119,8 @@ class XBRLParser:
         self,
         field_name: str,
         target_context: str,
-        section: str  # NUEVO parámetro
-    ) -> Optional[SourceTrace]:  # CAMBIO: antes retornaba Optional[float]
+        section: str
+    ) -> Optional[SourceTrace]:
         """
         Extrae valor de un campo filtrando por contexto específico.
 
@@ -168,7 +173,7 @@ class XBRLParser:
             return "No encontrado"
         return f"${value.raw_value:,.0f}"
 
-    def extract_balance_sheet(self) -> Dict[str, Optional[SourceTrace]]:  # CAMBIO tipo retorno
+    def extract_balance_sheet(self) -> Dict[str, Optional[SourceTrace]]:
         """
         Extrae Balance Sheet usando contexto <instant> consolidado.
 
@@ -196,7 +201,7 @@ class XBRLParser:
             value = self._get_value_by_context(
                 field,
                 bs_context,
-                section='balance_sheet'  # NUEVO
+                section='balance_sheet'
             )
             balance[field] = value
             print(f"  {field}: {self.format_currency(value)}")
@@ -207,7 +212,6 @@ class XBRLParser:
             balance.get('Liabilities'),
             balance.get('StockholdersEquity')
         ]):
-            # CAMBIO: Acceder a raw_value de SourceTrace
             assets = balance['Assets'].raw_value
             liabilities = balance['Liabilities'].raw_value
             equity = balance['StockholdersEquity'].raw_value
@@ -226,7 +230,7 @@ class XBRLParser:
 
         return balance
 
-    def extract_income_statement(self) -> Dict[str, Optional[SourceTrace]]:  # CAMBIO tipo retorno
+    def extract_income_statement(self) -> Dict[str, Optional[SourceTrace]]:
         """
         Extrae Income Statement usando contexto <duration> anual.
 
@@ -252,14 +256,14 @@ class XBRLParser:
             value = self._get_value_by_context(
                 field,
                 income_context,
-                section='income_statement'  # NUEVO
+                section='income_statement'
             )
             income[field] = value
             print(f"  {field}: {self.format_currency(value)}")
 
         return income
 
-    def extract_cash_flow(self) -> Dict[str, Optional[SourceTrace]]:  # CAMBIO tipo retorno
+    def extract_cash_flow(self) -> Dict[str, Optional[SourceTrace]]:
         """
         Extrae Cash Flow Statement usando contexto <duration> anual.
 
@@ -282,14 +286,14 @@ class XBRLParser:
             value = self._get_value_by_context(
                 field,
                 cf_context,
-                section='cash_flow'  # NUEVO
+                section='cash_flow'
             )
             cash_flow[field] = value
             print(f"  {field}: {self.format_currency(value)}")
 
         return cash_flow
 
-    def extract_all(self) -> Dict[str, Dict[str, Optional[SourceTrace]]]:  # CAMBIO tipo retorno
+    def extract_all(self) -> Dict[str, Dict[str, Optional[SourceTrace]]]:
         """
         Extrae todos los estados financieros con trazabilidad.
 
@@ -302,6 +306,169 @@ class XBRLParser:
             'cash_flow': self.extract_cash_flow()
         }
 
+    # ========================================================================
+    # NUEVO: TIME-SERIES EXTRACTION (Sprint 2 - Final)
+    # ========================================================================
+
+    def extract_timeseries(self, years: int = 5) -> Dict[int, Dict[str, SourceTrace]]:
+        """
+        Extrae métricas financieras para múltiples años fiscales.
+
+        Args:
+            years: Número máximo de años a extraer (default: 5)
+
+        Returns:
+            {
+                2025: {
+                    'Assets': SourceTrace(...),
+                    'Liabilities': SourceTrace(...),
+                    'Equity': SourceTrace(...),
+                    'Revenue': SourceTrace(...),
+                    'NetIncome': SourceTrace(...),
+                    ...
+                },
+                2024: {...},
+                2023: {...}
+            }
+
+        Raises:
+            ValueError: Si context_mgr no está inicializado
+
+        Example:
+            >>> parser = XBRLParser('data/apple_10k_xbrl.xml')
+            >>> parser.load()
+            >>> timeseries = parser.extract_timeseries(years=3)
+            >>> len(timeseries)
+            3
+            >>> timeseries[2025]['Revenues'].raw_value
+            391035000000.0
+        """
+        if not self.context_mgr:
+            raise ValueError(
+                "ContextManager not initialized. Call load() first."
+            )
+
+        # 1. Obtener años disponibles (ya ordenados desc por context_mgr)
+        available_years = self.context_mgr.get_available_years()
+
+        if not available_years:
+            print("⚠️  No se detectaron años fiscales en el XBRL")
+            return {}
+
+        years_to_extract = available_years[:min(years, len(available_years))]
+
+        print(f"\n🔍 Extrayendo time-series para {len(years_to_extract)} años:")
+        print(f"   Años detectados: {available_years}")
+        print(f"   Años a extraer: {years_to_extract}")
+
+        result = {}
+
+        # 2. Extraer datos para cada año
+        for year in years_to_extract:
+            try:
+                print(f"\n   → Procesando año {year}...")
+                year_data = self._extract_year_data(year)
+
+                # Validar que extrajo al menos datos básicos
+                if year_data.get('Assets') and year_data.get('Revenues'):
+                    result[year] = year_data
+                    print(f"     ✓ {len(year_data)} campos extraídos")
+                else:
+                    print(f"     ⚠️  Datos incompletos para {year}")
+
+            except Exception as e:
+                print(f"     ✗ Error en año {year}: {e}")
+                continue
+
+        print(f"\n✓ Time-series completo: {len(result)}/{len(years_to_extract)} años")
+        return result
+
+    def _extract_year_data(self, year: int) -> Dict[str, SourceTrace]:
+        """
+        Extrae datos financieros de un año fiscal específico.
+
+        Args:
+            year: Año fiscal (ej: 2025)
+
+        Returns:
+            Dict con SourceTrace por cada campo financiero
+
+        Raises:
+            ValueError: Si no existen contextos para el año
+        """
+        # Obtener contextos del año específico
+        balance_ctx = self.context_mgr.get_balance_context(year=year)
+        income_ctx = self.context_mgr.get_income_context(year=year)
+
+        if not balance_ctx:
+            raise ValueError(f"Balance context no encontrado para {year}")
+        if not income_ctx:
+            raise ValueError(f"Income context no encontrado para {year}")
+
+        year_data = {}
+
+        # ====================================================================
+        # BALANCE SHEET (instant context)
+        # ====================================================================
+        balance_fields = {
+            'Assets': 'balance_sheet',
+            'Liabilities': 'balance_sheet',
+            'StockholdersEquity': 'balance_sheet',
+            'CurrentAssets': 'balance_sheet',
+            'CurrentLiabilities': 'balance_sheet',
+            'LongTermDebt': 'balance_sheet',
+            'CashAndEquivalents': 'balance_sheet',
+        }
+
+        for field_name, section in balance_fields.items():
+            value = self._get_value_by_context(
+                field_name,
+                balance_ctx,
+                section
+            )
+            if value:  # Solo agregar si existe
+                year_data[field_name] = value
+
+        # ====================================================================
+        # INCOME STATEMENT (duration context)
+        # ====================================================================
+        income_fields = {
+            'Revenues': 'income_statement',
+            'NetIncomeLoss': 'income_statement',
+            'OperatingIncomeLoss': 'income_statement',
+            'GrossProfit': 'income_statement',
+            'CostOfRevenue': 'income_statement',
+            'InterestExpense': 'income_statement',
+        }
+
+        for field_name, section in income_fields.items():
+            value = self._get_value_by_context(
+                field_name,
+                income_ctx,
+                section
+            )
+            if value:
+                year_data[field_name] = value
+
+        # ====================================================================
+        # CASH FLOW (duration context - usa mismo que income)
+        # ====================================================================
+        cashflow_fields = {
+            'OperatingCashFlow': 'cash_flow',
+            'CapitalExpenditures': 'cash_flow',
+        }
+
+        for field_name, section in cashflow_fields.items():
+            value = self._get_value_by_context(
+                field_name,
+                income_ctx,  # Usa income_ctx (duration anual)
+                section
+            )
+            if value:
+                year_data[field_name] = value
+
+        return year_data
+
 
 if __name__ == "__main__":
     parser = XBRLParser('data/apple_10k_xbrl.xml')
@@ -309,14 +476,14 @@ if __name__ == "__main__":
     start_time = time.time()
 
     if parser.load():
-        data = parser.extract_all()
-
-        end_time = time.time()
-        processing_time = end_time - start_time
-
+        # ====================================================================
+        # TEST 1: Extracción estándar (Sprint 1)
+        # ====================================================================
         print("\n" + "="*60)
-        print("✅ EXTRACCION COMPLETADA")
+        print("TEST 1: EXTRACCIÓN ESTÁNDAR (AÑO MÁS RECIENTE)")
         print("="*60)
+
+        data = parser.extract_all()
 
         total_fields = sum(
             1 for section in data.values()
@@ -338,7 +505,7 @@ if __name__ == "__main__":
 
         print(f"✓ Campos core extraidos: {extracted_count}/5")
 
-        # CAMBIO: Acceder a raw_value de SourceTrace
+        # Validar balance
         bs = data['balance_sheet']
         balance_ok = False
         if all([bs.get('Assets'), bs.get('Liabilities'), bs.get('StockholdersEquity')]):
@@ -350,11 +517,51 @@ if __name__ == "__main__":
             balance_ok = diff_pct < 1
             print(f"✓ Balance cuadra: {'Si' if balance_ok else 'No'} ({diff_pct:.2f}% diferencia)")
 
+        # ====================================================================
+        # TEST 2: Time-Series (Sprint 2)
+        # ====================================================================
+        print("\n" + "="*60)
+        print("TEST 2: TIME-SERIES EXTRACTION (MULTI-YEAR)")
+        print("="*60)
+
+        timeseries = parser.extract_timeseries(years=4)
+
+        print(f"\n📊 Años extraídos: {len(timeseries)}")
+        print(f"   Años: {list(timeseries.keys())}")
+
+        # Validar estructura
+        for year, year_data in timeseries.items():
+            print(f"\n   {year}:")
+            print(f"      Campos: {len(year_data)}")
+
+            # Mostrar campos principales
+            if year_data.get('Revenues'):
+                print(f"      Revenue: ${year_data['Revenues'].raw_value:,.0f}")
+            if year_data.get('NetIncomeLoss'):
+                print(f"      Net Income: ${year_data['NetIncomeLoss'].raw_value:,.0f}")
+            if year_data.get('Assets'):
+                print(f"      Assets: ${year_data['Assets'].raw_value:,.0f}")
+
+            # Validar balance para este año
+            if all(k in year_data for k in ['Assets', 'Liabilities', 'StockholdersEquity']):
+                a = year_data['Assets'].raw_value
+                l = year_data['Liabilities'].raw_value
+                e = year_data['StockholdersEquity'].raw_value
+                diff = abs(a - (l + e)) / a * 100
+                print(f"      Balance check: {diff:.2f}% diff {'✓' if diff < 1 else '✗'}")
+
+        end_time = time.time()
+        processing_time = end_time - start_time
+
         print(f"\n⏱️  Tiempo de procesamiento: {processing_time:.2f} segundos")
 
-        # NUEVO: Demostrar trazabilidad
+        # ====================================================================
+        # DEMOSTRACIÓN DE TRAZABILIDAD
+        # ====================================================================
         if bs.get('Assets'):
-            print("\n🔍 Trazabilidad ejemplo (Assets):")
+            print("\n" + "="*60)
+            print("🔍 TRAZABILIDAD EJEMPLO (Assets - Año más reciente)")
+            print("="*60)
             assets_trace = bs['Assets']
             print(f"   Tag XBRL: {assets_trace.xbrl_tag}")
             print(f"   Valor: ${assets_trace.raw_value:,.0f}")
@@ -362,18 +569,36 @@ if __name__ == "__main__":
             print(f"   Sección: {assets_trace.section}")
             print(f"   Timestamp: {assets_trace.extracted_at.isoformat()}")
 
-        if extracted_count >= 5 and balance_ok and processing_time < 5:
-            print("\n🎯 SPRINT 2 + TRANSPARENCY ENGINE COMPLETADO")
+        # ====================================================================
+        # VALIDACIÓN FINAL
+        # ====================================================================
+        print("\n" + "="*60)
+        print("✅ VALIDACIÓN SPRINT 2 COMPLETO")
+        print("="*60)
+
+        checks = {
+            "Extracción estándar (5+ campos)": extracted_count >= 5,
+            "Balance cuadra (<1%)": balance_ok,
+            "Time-series (3+ años)": len(timeseries) >= 3,
+            "Performance (<5 segundos)": processing_time < 5.0,
+        }
+
+        all_passed = all(checks.values())
+
+        for check, passed in checks.items():
+            status = "✓" if passed else "✗"
+            print(f"   {status} {check}")
+
+        if all_passed:
+            print("\n🎯 SPRINT 2 COMPLETADO AL 100%")
             print("   ✓ Parser con ContextManager integrado")
             print("   ✓ SourceTrace con metadata completa")
-            print("   ✓ Balance sheet cuadra (<1% diferencia)")
-            print(f"   ✓ Tiempo <5 segundos ({processing_time:.2f}s)")
-            print("\n📋 Siguiente: Sprint 3 (25 Métricas con Trazabilidad)")
+            print("   ✓ Time-series multi-year funcional")
+            print("   ✓ Balance sheet validation")
+            print(f"   ✓ Performance óptima ({processing_time:.2f}s)")
+            print("\n📋 LISTO PARA: Sprint 3 (25 Métricas + Factory Pattern)")
         else:
-            print("\n⚠️  REVISAR")
-            if extracted_count < 5:
-                print(f"   ✗ Faltan {5 - extracted_count} campos core")
-            if not balance_ok:
-                print("   ✗ Balance sheet no cuadra")
-            if processing_time >= 5:
-                print(f"   ✗ Tiempo excede 5s ({processing_time:.2f}s)")
+            print("\n⚠️  REVISAR ISSUES:")
+            for check, passed in checks.items():
+                if not passed:
+                    print(f"   ✗ {check}")
