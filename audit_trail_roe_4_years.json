@@ -1,0 +1,318 @@
+{
+  "2022": {
+    "metric": "ROE",
+    "value": 196.96,
+    "formula": "(NetIncome / Equity) * 100",
+    "unit": "%",
+    "calculated_at": "2026-01-23T14:49:20.199363",
+    "inputs": {
+      "NetIncomeLoss": {
+        "value": 99803000000.0,
+        "xbrl_tag": "NetIncomeLoss",
+        "context_id": "i4a4fb50fc2db4070adb20304175890ef_D20210926-20220924",
+        "section": "income_statement",
+        "extracted_at": "2026-01-23T14:49:20.189389"
+      },
+      "StockholdersEquity": {
+        "value": 50672000000.0,
+        "xbrl_tag": "StockholdersEquity",
+        "context_id": "if3ba800b42a9406abf364f6d45d67e23_I20220924",
+        "section": "balance_sheet",
+        "extracted_at": "2026-01-23T14:49:20.162682"
+      }
+    },
+    "metadata": {
+      "category": "Profitability",
+      "subcategory": "Return Metrics",
+      "benchmarks": {
+        "exceptional": 20.0,
+        "excellent": 15.0,
+        "good": 10.0,
+        "acceptable": 5.0,
+        "poor": 0.0
+      },
+      "industry_benchmarks": {
+        "Technology": {
+          "excellent": 20.0,
+          "good": 15.0
+        },
+        "Financial Services": {
+          "excellent": 15.0,
+          "good": 10.0
+        },
+        "Consumer Goods": {
+          "excellent": 18.0,
+          "good": 12.0
+        },
+        "Utilities": {
+          "excellent": 12.0,
+          "good": 8.0
+        },
+        "Retail": {
+          "excellent": 20.0,
+          "good": 15.0
+        }
+      },
+      "interpretation": {
+        "high": "Strong profitability and efficient use of equity",
+        "low": "Weak profitability or inefficient capital structure",
+        "negative": "Company operating at a loss"
+      },
+      "red_flags": {
+        "excessive": 50.0,
+        "minimum": -10.0
+      },
+      "related_metrics": [
+        "ROA",
+        "ROIC",
+        "NetMargin"
+      ],
+      "formula_components": {
+        "numerator": "Net Income (after taxes)",
+        "denominator": "Average Stockholders Equity"
+      },
+      "notes": [
+        "High ROE can result from low equity (high leverage)",
+        "Compare with ROA to assess leverage impact",
+        "Best analyzed as 5-year trend, not single year"
+      ]
+    }
+  },
+  "2023": {
+    "metric": "ROE",
+    "value": 156.08,
+    "formula": "(NetIncome / Equity) * 100",
+    "unit": "%",
+    "calculated_at": "2026-01-23T14:49:20.199547",
+    "inputs": {
+      "NetIncomeLoss": {
+        "value": 96995000000.0,
+        "xbrl_tag": "NetIncomeLoss",
+        "context_id": "c-1",
+        "section": "income_statement",
+        "extracted_at": "2026-01-23T14:49:20.116713"
+      },
+      "StockholdersEquity": {
+        "value": 62146000000.0,
+        "xbrl_tag": "StockholdersEquity",
+        "context_id": "c-22",
+        "section": "balance_sheet",
+        "extracted_at": "2026-01-23T14:49:20.089648"
+      }
+    },
+    "metadata": {
+      "category": "Profitability",
+      "subcategory": "Return Metrics",
+      "benchmarks": {
+        "exceptional": 20.0,
+        "excellent": 15.0,
+        "good": 10.0,
+        "acceptable": 5.0,
+        "poor": 0.0
+      },
+      "industry_benchmarks": {
+        "Technology": {
+          "excellent": 20.0,
+          "good": 15.0
+        },
+        "Financial Services": {
+          "excellent": 15.0,
+          "good": 10.0
+        },
+        "Consumer Goods": {
+          "excellent": 18.0,
+          "good": 12.0
+        },
+        "Utilities": {
+          "excellent": 12.0,
+          "good": 8.0
+        },
+        "Retail": {
+          "excellent": 20.0,
+          "good": 15.0
+        }
+      },
+      "interpretation": {
+        "high": "Strong profitability and efficient use of equity",
+        "low": "Weak profitability or inefficient capital structure",
+        "negative": "Company operating at a loss"
+      },
+      "red_flags": {
+        "excessive": 50.0,
+        "minimum": -10.0
+      },
+      "related_metrics": [
+        "ROA",
+        "ROIC",
+        "NetMargin"
+      ],
+      "formula_components": {
+        "numerator": "Net Income (after taxes)",
+        "denominator": "Average Stockholders Equity"
+      },
+      "notes": [
+        "High ROE can result from low equity (high leverage)",
+        "Compare with ROA to assess leverage impact",
+        "Best analyzed as 5-year trend, not single year"
+      ]
+    }
+  },
+  "2024": {
+    "metric": "ROE",
+    "value": 164.59,
+    "formula": "(NetIncome / Equity) * 100",
+    "unit": "%",
+    "calculated_at": "2026-01-23T14:49:20.199645",
+    "inputs": {
+      "NetIncomeLoss": {
+        "value": 93736000000.0,
+        "xbrl_tag": "NetIncomeLoss",
+        "context_id": "c-1",
+        "section": "income_statement",
+        "extracted_at": "2026-01-23T14:49:20.062374"
+      },
+      "StockholdersEquity": {
+        "value": 56950000000.0,
+        "xbrl_tag": "StockholdersEquity",
+        "context_id": "c-21",
+        "section": "balance_sheet",
+        "extracted_at": "2026-01-23T14:49:20.046003"
+      }
+    },
+    "metadata": {
+      "category": "Profitability",
+      "subcategory": "Return Metrics",
+      "benchmarks": {
+        "exceptional": 20.0,
+        "excellent": 15.0,
+        "good": 10.0,
+        "acceptable": 5.0,
+        "poor": 0.0
+      },
+      "industry_benchmarks": {
+        "Technology": {
+          "excellent": 20.0,
+          "good": 15.0
+        },
+        "Financial Services": {
+          "excellent": 15.0,
+          "good": 10.0
+        },
+        "Consumer Goods": {
+          "excellent": 18.0,
+          "good": 12.0
+        },
+        "Utilities": {
+          "excellent": 12.0,
+          "good": 8.0
+        },
+        "Retail": {
+          "excellent": 20.0,
+          "good": 15.0
+        }
+      },
+      "interpretation": {
+        "high": "Strong profitability and efficient use of equity",
+        "low": "Weak profitability or inefficient capital structure",
+        "negative": "Company operating at a loss"
+      },
+      "red_flags": {
+        "excessive": 50.0,
+        "minimum": -10.0
+      },
+      "related_metrics": [
+        "ROA",
+        "ROIC",
+        "NetMargin"
+      ],
+      "formula_components": {
+        "numerator": "Net Income (after taxes)",
+        "denominator": "Average Stockholders Equity"
+      },
+      "notes": [
+        "High ROE can result from low equity (high leverage)",
+        "Compare with ROA to assess leverage impact",
+        "Best analyzed as 5-year trend, not single year"
+      ]
+    }
+  },
+  "2025": {
+    "metric": "ROE",
+    "value": 151.91,
+    "formula": "(NetIncome / Equity) * 100",
+    "unit": "%",
+    "calculated_at": "2026-01-23T14:49:20.199728",
+    "inputs": {
+      "NetIncomeLoss": {
+        "value": 112010000000.0,
+        "xbrl_tag": "NetIncomeLoss",
+        "context_id": "c-1",
+        "section": "income_statement",
+        "extracted_at": "2026-01-23T14:49:20.027243"
+      },
+      "StockholdersEquity": {
+        "value": 73733000000.0,
+        "xbrl_tag": "StockholdersEquity",
+        "context_id": "c-20",
+        "section": "balance_sheet",
+        "extracted_at": "2026-01-23T14:49:20.015046"
+      }
+    },
+    "metadata": {
+      "category": "Profitability",
+      "subcategory": "Return Metrics",
+      "benchmarks": {
+        "exceptional": 20.0,
+        "excellent": 15.0,
+        "good": 10.0,
+        "acceptable": 5.0,
+        "poor": 0.0
+      },
+      "industry_benchmarks": {
+        "Technology": {
+          "excellent": 20.0,
+          "good": 15.0
+        },
+        "Financial Services": {
+          "excellent": 15.0,
+          "good": 10.0
+        },
+        "Consumer Goods": {
+          "excellent": 18.0,
+          "good": 12.0
+        },
+        "Utilities": {
+          "excellent": 12.0,
+          "good": 8.0
+        },
+        "Retail": {
+          "excellent": 20.0,
+          "good": 15.0
+        }
+      },
+      "interpretation": {
+        "high": "Strong profitability and efficient use of equity",
+        "low": "Weak profitability or inefficient capital structure",
+        "negative": "Company operating at a loss"
+      },
+      "red_flags": {
+        "excessive": 50.0,
+        "minimum": -10.0
+      },
+      "related_metrics": [
+        "ROA",
+        "ROIC",
+        "NetMargin"
+      ],
+      "formula_components": {
+        "numerator": "Net Income (after taxes)",
+        "denominator": "Average Stockholders Equity"
+      },
+      "notes": [
+        "High ROE can result from low equity (high leverage)",
+        "Compare with ROA to assess leverage impact",
+        "Best analyzed as 5-year trend, not single year"
+      ]
+    }
+  }
+}

@@ -1,5 +1,3 @@
-# backend/engines/context_manager.py
-
 """
 Context Manager para filtrar contextos XBRL relevantes con soporte multi-year.
 
@@ -132,9 +130,8 @@ class ContextManager:
         self._fiscal_year = self._fiscal_year_end.year
 
         logger.info(
-            "fiscal_period_identified",
-            year=self._fiscal_year,
-            year_end=str(self._fiscal_year_end)
+            f"fiscal_period_identified: year={self._fiscal_year}, "
+            f"year_end={self._fiscal_year_end}"
         )
 
     def _initialize_multiyear(self) -> None:
@@ -187,9 +184,8 @@ class ContextManager:
         self._multiyear_initialized = True
 
         logger.info(
-            "multiyear_initialized",
-            years=sorted_years,
-            count=len(sorted_years)
+            f"multiyear_initialized: years={sorted_years}, "
+            f"count={len(sorted_years)}"
         )
 
     def _find_all_instant_contexts(self) -> List[Tuple[str, date]]:
@@ -222,9 +218,8 @@ class ContextManager:
         # CRÍTICO: Filtrar filing date (primer instant)
         if len(instant_contexts) > 1:
             logger.debug(
-                "filing_date_filtered",
-                excluded=str(instant_contexts[0][1]),
-                first_valid=str(instant_contexts[1][1])
+                f"filing_date_filtered: excluded={instant_contexts[0][1]}, "
+                f"first_valid={instant_contexts[1][1]}"
             )
             return instant_contexts[1:]  # Excluir filing date
 
@@ -308,10 +303,7 @@ class ContextManager:
 
                     if ctx_date == target_date:
                         self._balance_context = ctx.get('id')
-                        logger.info(
-                            "balance_context_found",
-                            context_id=self._balance_context
-                        )
+                        logger.info(f"balance_context_found: context_id={self._balance_context}")
                         return self._balance_context
 
             raise ValueError(f"No balance context found for {target_date}")
@@ -396,9 +388,8 @@ class ContextManager:
             self._income_context = candidates[0][0]
 
             logger.info(
-                "income_context_found",
-                context_id=self._income_context,
-                duration_days=candidates[0][1]
+                f"income_context_found: context_id={self._income_context}, "
+                f"duration_days={candidates[0][1]}"
             )
             return self._income_context
 
