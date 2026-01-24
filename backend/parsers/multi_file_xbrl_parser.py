@@ -212,7 +212,7 @@ class MultiFileXBRLParser:
                 print(f"   ✓ {len(year_data)} campos extraídos")
 
                 # Mostrar campos principales
-                key_fields = ['Assets', 'Revenues', 'NetIncomeLoss']
+                key_fields = ['Assets', 'Revenue', 'NetIncome']
                 for field in key_fields:
                     if field in year_data:
                         value = year_data[field].raw_value
@@ -249,8 +249,8 @@ class MultiFileXBRLParser:
         for year in sorted(timeseries.keys(), reverse=True):
             data = timeseries[year]
 
-            # Verificar que existen los campos necesarios
-            required = ['Assets', 'Liabilities', 'StockholdersEquity']
+            # FIX: Cambiar 'StockholdersEquity' por 'Equity' (Sprint 3 Day 3)
+            required = ['Assets', 'Liabilities', 'Equity']
             if not all(field in data for field in required):
                 print(f"{year}: ⚠️  Campos faltantes")
                 results[year] = False
@@ -259,7 +259,7 @@ class MultiFileXBRLParser:
             # Extraer valores
             assets = data['Assets'].raw_value
             liabilities = data['Liabilities'].raw_value
-            equity = data['StockholdersEquity'].raw_value
+            equity = data['Equity'].raw_value
 
             # Calcular diferencia
             calculated = liabilities + equity
