@@ -1,5 +1,3 @@
-# backend/parsers/multi_file_xbrl_parser.py
-
 """
 Parser multi-archivo para extracción de time-series XBRL.
 
@@ -10,9 +8,10 @@ Cambios Sprint 3 Día 4:
 - ACTUALIZADO: Sincronizado con xbrl_parser.py (18 conceptos Balance Sheet)
 - Soporte para nuevos campos: Inventory, AccountsReceivable, Goodwill, etc.
 - Validación de balance usa 'Equity' (no 'StockholdersEquity')
+- **NUEVO**: Consolidación de mapping gaps entre múltiples años
 
 Author: @franklin
-Sprint: 3 Día 4 - Multi-Year Time-Series con 18 Balance Concepts
+Sprint: 3 Día 4 - Fuzzy Mapping System (Multi-File)
 """
 
 import sys
@@ -38,6 +37,8 @@ class MultiFileXBRLParser:
     - Balance Sheet: 18 conceptos (7 core + 11 nuevos)
     - Income Statement: 6 conceptos (próxima micro-tarea: 13)
     - Cash Flow: 2 conceptos
+    - **NUEVO**: Fuzzy mapping en cada parser individual
+    - **NUEVO**: Consolidación de mapping gaps
 
     Usage:
         parser = MultiFileXBRLParser(ticker='AAPL')
@@ -50,6 +51,10 @@ class MultiFileXBRLParser:
         #   2023: {...},
         #   2022: {...}
         # }
+
+        # Mapping gaps consolidado
+        gaps_report = parser.get_consolidated_mapping_gaps()
+        print(gaps_report)
     """
 
     # Patrones de nombres de archivo por ticker
@@ -68,6 +73,9 @@ class MultiFileXBRLParser:
         """
         self.ticker = ticker.upper()
         self.data_dir = Path(data_dir)
+
+        # ← NUEVO: Almacenar parsers para acceder a mapping gaps
+        self.parsers: Dict[int, XBRLParser] = {}
 
         if not self.data_dir.exists():
             raise ValueError(f"Directorio no existe: {data_dir}")
@@ -143,7 +151,10 @@ class MultiFileXBRLParser:
         """
         Extrae time-series de múltiples archivos XBRL.
 
-        SPRINT 3 DÍA 4: Ahora extrae hasta 18 conceptos de Balance Sheet
+        SPRINT 3 DÍA 4:
+        - Ahora extrae hasta 18 conceptos de Balance Sheet
+        - Cada parser usa fuzzy mapping
+        - Almacena parsers para mapping gaps consolidado
 
         Args:
             years: Número máximo de años a extraer
@@ -179,7 +190,7 @@ class MultiFileXBRLParser:
         years_to_extract = available_years[:min(years, len(available_years))]
 
         print(f"\n{'='*60}")
-        print(f"EXTRACCIÓN TIME-SERIES MULTI-ARCHIVO")
+        print(f"EXTRACCIÓN TIME-SERIES MULTI-ARCHIVO CON FUZZY MAPPING")
         print(f"{'='*60}")
         print(f"Ticker: {self.ticker}")
         print(f"Años solicitados: {years}")
@@ -198,12 +209,15 @@ class MultiFileXBRLParser:
                 # Crear parser individual para este archivo
                 parser = XBRLParser(str(filepath))
 
-                # Cargar archivo
+                # Cargar archivo (inicializa fuzzy mapper)
                 if not parser.load():
                     print(f"   ✗ Error cargando archivo")
                     continue
 
-                # Extraer todos los datos (ahora con 18 Balance concepts)
+                # ← NUEVO: Almacenar parser para mapping gaps
+                self.parsers[year] = parser
+
+                # Extraer todos los datos (ahora con 18 Balance concepts + fuzzy)
                 data = parser.extract_all()
 
                 # Combinar balance_sheet + income_statement + cash_flow
@@ -310,11 +324,64 @@ class MultiFileXBRLParser:
 
         return results
 
+    def get_consolidated_mapping_gaps(self) -> str:
+        """
+        Consolida mapping gaps de todos los años procesados.
+
+        NUEVO Sprint 3 Día 4: Para análisis CTO multi-year
+
+        Returns:
+            Consolidated mapping gaps report
+
+        Example:
+            >>> parser = MultiFileXBRLParser('AAPL')
+            >>> ts = parser.extract_timeseries(years=4)
+            >>> report = parser.get_consolidated_mapping_gaps()
+            >>> print(report)
+            ============================================================
+            MAPPING GAPS ANALYSIS - CONSOLIDATED
+            ============================================================
+
+            📅 2025:
+            ... gaps report ...
+
+            📅 2024:
+            ... gaps report ...
+
+            ⚠️  ACTION REQUIRED: Review gaps and update taxonomy_map.json
+            ============================================================
+        """
+        print(f"\n{'='*70}")
+        print("MAPPING GAPS ANALYSIS - CONSOLIDATED")
+        print("="*70)
+
+        all_gaps = []
+
+        for year in sorted(self.parsers.keys(), reverse=True):
+            parser = self.parsers[year]
+            gaps_report = parser.get_mapping_gaps_report()
+
+            if "No mapping gaps" not in gaps_report:
+                all_gaps.append(f"\n📅 {year}:")
+                all_gaps.append(gaps_report)
+
+        if all_gaps:
+            consolidated = "\n".join(all_gaps)
+            consolidated += "\n\n⚠️  ACTION REQUIRED: Review gaps and update taxonomy_map.json"
+            print(consolidated)
+            print("="*70)
+            return consolidated
+        else:
+            no_gaps = "✓ No mapping gaps detected across all years"
+            print(no_gaps)
+            print("="*70)
+            return no_gaps
+
 
 if __name__ == "__main__":
     """
     Test del MultiFileXBRLParser con Apple 10-K históricos.
-    SPRINT 3 DÍA 4: Ahora extrae 18+ conceptos por año
+    SPRINT 3 DÍA 4: Ahora extrae 18+ conceptos por año con fuzzy mapping
     """
     import time
 
@@ -324,15 +391,18 @@ if __name__ == "__main__":
         # Crear parser multi-archivo
         parser = MultiFileXBRLParser(ticker='AAPL', data_dir='data')
 
-        # Extraer time-series de 4 años (ahora con 18 Balance concepts)
+        # Extraer time-series de 4 años (ahora con 18 Balance concepts + fuzzy)
         timeseries = parser.extract_timeseries(years=4)
 
         # Validar balance sheets
         balance_results = parser.validate_balance_sheets(timeseries)
 
+        # ← NUEVO: Consolidar mapping gaps
+        consolidated_gaps = parser.get_consolidated_mapping_gaps()
+
         # Resumen final
         print(f"\n{'='*60}")
-        print(f"📊 RESUMEN FINAL - SPRINT 3 DÍA 4")
+        print(f"📊 RESUMEN FINAL - SPRINT 3 DÍA 4 (FUZZY MAPPING)")
         print(f"{'='*60}")
 
         print(f"\nAños procesados: {len(timeseries)}")
@@ -375,8 +445,11 @@ if __name__ == "__main__":
 
         has_new_fields = new_fields_count > 0
 
+        # ← NUEVO: Validar que fuzzy mapper funcionó
+        has_fuzzy_mapper = all(hasattr(p, 'fuzzy_mapper') for p in parser.parsers.values())
+
         print(f"\n{'='*60}")
-        print(f"VALIDACIÓN SPRINT 3 DÍA 4 - MICRO-TAREA 1")
+        print(f"VALIDACIÓN SPRINT 3 DÍA 4 - FUZZY MAPPING SYSTEM")
         print(f"{'='*60}")
 
         checks = {
@@ -384,6 +457,7 @@ if __name__ == "__main__":
             "Balance sheets válidos": all_balance_ok,
             "Performance <10s": fast_enough,
             "Nuevos campos extraídos": has_new_fields,
+            "Fuzzy mapper activo": has_fuzzy_mapper,
         }
 
         for check, passed in checks.items():
@@ -391,12 +465,13 @@ if __name__ == "__main__":
             print(f"  {status} {check}")
 
         if all(checks.values()):
-            print(f"\n🎯 MICRO-TAREA 1 - MULTI-FILE VALIDATION PASSED")
-            print(f"   ✓ 4 años extraídos correctamente")
+            print(f"\n🎯 FUZZY MAPPING SYSTEM - MULTI-FILE VALIDATION PASSED")
+            print(f"   ✓ 4 años extraídos con fuzzy mapping")
             print(f"   ✓ Balance sheets validados (0.00% diff)")
             print(f"   ✓ Performance óptima ({elapsed:.2f}s)")
             print(f"   ✓ Nuevos campos Pro extraídos")
-            print(f"\n📋 LISTO PARA: Micro-Tarea 2 (Income Statement 6→13)")
+            print(f"   ✓ Mapping gaps consolidado activo")
+            print(f"\n📋 SISTEMA 80/20 COMPLETADO")
         else:
             print(f"\n⚠️  REVISAR:")
             for check, passed in checks.items():

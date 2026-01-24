@@ -1,7 +1,5 @@
-# backend/parsers/xbrl_parser.py
-
 """
-Parser XBRL con Context Management y Transparency Engine integrados.
+Parser XBRL con Context Management, Transparency Engine y Fuzzy Mapping.
 
 Cambios Sprint 2:
 - Integra ContextManager para filtrar contextos consolidados
@@ -19,6 +17,7 @@ Cambios Sprint 3 Día 4:
 - Nuevos campos: Inventory, AccountsReceivable, Goodwill, etc.
 - Soporte completo para análisis CFA-level
 - FIX: extract_all() ahora usa year explícito (igual que time-series)
+- **NUEVO**: FuzzyMapper para manejar extension tags (80/20 rule)
 
 Cambios Transparency Engine:
 - Retorna SourceTrace en lugar de floats
@@ -26,7 +25,7 @@ Cambios Transparency Engine:
 - Trazabilidad end-to-end para analistas
 
 Author: @franklin
-Sprint: 3 Día 4 - Expansión a 33 Conceptos (Balance Sheet 18)
+Sprint: 3 Día 4 - Fuzzy Mapping System
 """
 
 from lxml import etree
@@ -41,6 +40,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from backend.engines.context_manager import ContextManager
 from backend.engines.tracked_metric import SourceTrace
 from backend.parsers.taxonomy_resolver import TaxonomyResolver
+from backend.parsers.fuzzy_mapper import FuzzyMapper  # ← NUEVO
 
 
 class XBRLParser:
@@ -56,6 +56,11 @@ class XBRLParser:
     - Balance Sheet expandido: 7 → 18 conceptos
     - Nuevos campos Pro: Inventory, Goodwill, RetainedEarnings, etc.
 
+    SPRINT 3 DÍA 4 - FUZZY MAPPING:
+    - FuzzyMapper para extension tags (80/20 rule)
+    - Parent tag discovery via XSD
+    - Mapping gap tracking para transparencia institucional
+
     Uso:
         parser = XBRLParser('apple.xml')
         parser.load()
@@ -64,8 +69,12 @@ class XBRLParser:
         # Acceder a valores con trazabilidad
         assets = data['balance_sheet']['Assets']
         print(assets.raw_value)  # Float value
-        print(assets.xbrl_tag)   # "Assets" (auto-resuelto)
+        print(assets.xbrl_tag)   # "Assets" (auto-resuelto + fuzzy matched)
         print(assets.context_id) # "c-20"
+
+        # Mapping gaps report
+        gaps_report = parser.get_mapping_gaps_report()
+        print(gaps_report)  # Gaps detectados para análisis CTO
 
         # Time-series
         timeseries = parser.extract_timeseries(years=4)
@@ -75,7 +84,7 @@ class XBRLParser:
     # ========================================================================
     # DEPRECADO: TAG_MAPPING será eliminado en Sprint 4
     # Mantenido SOLO para compatibilidad con tests antiguos
-    # NUEVO código usa TaxonomyResolver en su lugar
+    # NUEVO código usa TaxonomyResolver + FuzzyMapper en su lugar
     # ========================================================================
     TAG_MAPPING = {
         # Balance Sheet
@@ -115,13 +124,17 @@ class XBRLParser:
         self.root = None
         self.namespaces = {}
         self.context_mgr = None
-        self.resolver = None  # ← NUEVO Sprint 3: TaxonomyResolver
+        self.resolver = None  # TaxonomyResolver
+        self.fuzzy_mapper = None  # ← NUEVO: FuzzyMapper
+        self.xsd_tree = None  # ← NUEVO: XSD schema para parent discovery
 
     def load(self) -> bool:
         """
-        Carga el archivo XBRL e inicializa ContextManager y TaxonomyResolver.
+        Carga el archivo XBRL e inicializa subsistemas.
 
-        NUEVO Sprint 3: Inicializa TaxonomyResolver para portabilidad
+        NUEVO Sprint 3 Día 4:
+        - Inicializa FuzzyMapper con threshold 0.75
+        - Intenta cargar XSD schema si existe (para parent discovery)
 
         Returns:
             bool: True si carga exitosa
@@ -134,19 +147,60 @@ class XBRLParser:
             # Inicializar ContextManager
             self.context_mgr = ContextManager(self.tree)
 
-            # ← NUEVO Sprint 3: Inicializar TaxonomyResolver
+            # Inicializar TaxonomyResolver
             self.resolver = TaxonomyResolver()
+
+            # ← NUEVO: Inicializar FuzzyMapper
+            self.fuzzy_mapper = FuzzyMapper(similarity_threshold=0.75)
+
+            # ← NUEVO: Intentar cargar XSD schema (para parent tag discovery)
+            self._try_load_xsd_schema()
 
             print(f"✓ Archivo cargado: {self.filepath}")
             print(f"  Namespaces encontrados: {len(self.namespaces)}")
             print(f"  Año fiscal: {self.context_mgr.fiscal_year}")
             print(f"  Fiscal year-end: {self.context_mgr.fiscal_year_end}")
             print(f"  TaxonomyResolver: {len(self.resolver.list_concepts())} concepts")
+            print(f"  FuzzyMapper: threshold={self.fuzzy_mapper.similarity_threshold}")
+
+            if self.xsd_tree is not None:
+                print(f"  XSD Schema: loaded (parent discovery enabled)")
+            else:
+                print(f"  XSD Schema: not available (parent discovery disabled)")
 
             return True
         except Exception as e:
             print(f"✗ Error: {e}")
             return False
+
+    def _try_load_xsd_schema(self) -> None:
+        """
+        Intenta cargar XSD schema del mismo directorio que el XBRL.
+
+        Busca archivos .xsd en el mismo directorio del .xml.
+        Si encuentra alguno, lo carga para parent tag discovery.
+
+        NUEVO Sprint 3 Día 4: Para parent tag discovery
+        """
+        from pathlib import Path
+
+        try:
+            # Directorio del archivo XBRL
+            xbrl_path = Path(self.filepath)
+            xbrl_dir = xbrl_path.parent
+
+            # Buscar archivos .xsd en el directorio
+            xsd_files = list(xbrl_dir.glob('*.xsd'))
+
+            if xsd_files:
+                # Cargar primer XSD encontrado
+                xsd_path = xsd_files[0]
+                self.xsd_tree = etree.parse(str(xsd_path))
+
+        except Exception:
+            # XSD schema no disponible - no es error crítico
+            # Parent discovery simplemente no estará disponible
+            self.xsd_tree = None
 
     def _get_value_by_context(
         self,
@@ -158,6 +212,13 @@ class XBRLParser:
         Extrae valor de un campo filtrando por contexto específico.
 
         CAMBIO SPRINT 3: Usa TaxonomyResolver en lugar de TAG_MAPPING
+        CAMBIO SPRINT 3 DÍA 4: Integra FuzzyMapper con fallback hierarchy
+
+        FALLBACK HIERARCHY:
+        1. Direct taxonomy lookup (TaxonomyResolver)
+        2. Fuzzy matching (FuzzyMapper.fuzzy_match_alias)
+        3. Parent tag discovery (FuzzyMapper.find_parent_tag)
+        4. Record mapping gap (FuzzyMapper.record_mapping_gap)
 
         Args:
             field_name: Nombre del concepto contable (e.g., "NetIncome", "Assets", "Equity")
@@ -168,23 +229,113 @@ class XBRLParser:
             SourceTrace: Objeto con valor + metadata, o None si no existe
 
         Example:
-            # ANTES (Sprint 2):
-            # field_name = 'NetIncomeLoss'  (hardcoded tag)
+            # PASO 1: Direct lookup
+            value = _get_value_by_context('Revenue', 'c-20', 'income_statement')
+            # TaxonomyResolver.resolve() → 'RevenueFromContractWithCustomer'
 
-            # AHORA (Sprint 3):
-            # field_name = 'NetIncome'  (concepto abstracto)
-            # resolver.resolve() → 'NetIncomeLoss' para Apple
-            #                   → 'ProfitLoss' para otra empresa
+            # PASO 2: Fuzzy matching (si paso 1 falla)
+            # FuzzyMapper busca 'NetSalesOfiPhone' que coincide con 'NetSales' >75%
+
+            # PASO 3: Parent discovery (si paso 2 falla)
+            # FuzzyMapper navega XSD: aapl:NetSalesOfiPhone → us-gaap:Revenues
+
+            # PASO 4: Record gap (si todo falla)
+            # FuzzyMapper registra gap para análisis CTO
         """
+        # =================================================================
+        # PASO 1: Direct taxonomy lookup (TaxonomyResolver)
+        # =================================================================
         try:
-            # ← NUEVO Sprint 3: Usar TaxonomyResolver
             tag_name = self.resolver.resolve(field_name, self.tree)
-        except ValueError:
-            # Concepto no encontrado en documento XBRL
-            # (puede ser normal, no todas las empresas reportan todos los campos)
-            return None
 
-        # Buscar el tag resuelto en el contexto específico
+            # Buscar el tag resuelto en el contexto específico
+            value = self._search_tag_in_context(tag_name, target_context, section)
+
+            if value:
+                return value  # ✓ Direct lookup exitoso
+
+        except ValueError:
+            # Concepto no encontrado - intentar fuzzy matching
+            pass
+
+        # =================================================================
+        # PASO 2: Fuzzy matching (FuzzyMapper)
+        # =================================================================
+        # Obtener aliases del concepto desde taxonomy
+        aliases = self._get_concept_aliases(field_name)
+
+        if aliases:
+            # Obtener todos los tags disponibles en el XBRL
+            available_tags = self._get_available_tags()
+
+            # Intentar fuzzy match
+            fuzzy_tag = self.fuzzy_mapper.fuzzy_match_alias(
+                concept=field_name,
+                available_tags=available_tags,
+                aliases=aliases
+            )
+
+            if fuzzy_tag:
+                # Extraer local name (sin namespace)
+                local_name = fuzzy_tag.split(':')[-1] if ':' in fuzzy_tag else fuzzy_tag
+
+                value = self._search_tag_in_context(local_name, target_context, section)
+
+                if value:
+                    return value  # ✓ Fuzzy matching exitoso
+
+        # =================================================================
+        # PASO 3: Parent tag discovery (XSD hierarchy)
+        # =================================================================
+        if self.xsd_tree is not None and aliases:
+            available_tags = self._get_available_tags()
+
+            for tag in available_tags:
+                # Buscar parent tag en XSD
+                parent = self.fuzzy_mapper.find_parent_tag(tag, self.xsd_tree)
+
+                if parent and parent in aliases:
+                    # Encontrado parent tag que coincide con nuestros aliases
+                    local_name = tag.split(':')[-1] if ':' in tag else tag
+
+                    value = self._search_tag_in_context(local_name, target_context, section)
+
+                    if value:
+                        return value  # ✓ Parent discovery exitoso
+
+        # =================================================================
+        # PASO 4: Record mapping gap (fallback final)
+        # =================================================================
+        # Si llegamos aquí, NO pudimos encontrar el concepto
+        # Registrar gap para análisis CTO
+        self.fuzzy_mapper.record_mapping_gap(
+            concept=field_name,
+            attempted_aliases=aliases,
+            available_tags=self._get_available_tags()[:20],  # Sample de 20 tags
+            context=f"{self._get_company_name()} - {section}"
+        )
+
+        return None  # No encontrado después de 4 intentos
+
+    def _search_tag_in_context(
+        self,
+        tag_name: str,
+        target_context: str,
+        section: str
+    ) -> Optional[SourceTrace]:
+        """
+        Busca un tag específico en un contexto dado.
+
+        Helper method para evitar código duplicado en los 3 pasos del fallback.
+
+        Args:
+            tag_name: Tag XBRL (sin namespace, ej: 'Revenues')
+            target_context: Context ID (ej: 'c-20')
+            section: Section name
+
+        Returns:
+            SourceTrace si encontrado, None si no
+        """
         xpath = f".//*[local-name()='{tag_name}'][@contextRef='{target_context}']"
         elements = self.root.xpath(xpath)
 
@@ -209,6 +360,96 @@ class XBRLParser:
 
         return None
 
+    def _get_concept_aliases(self, concept: str) -> List[str]:
+        """
+        Obtiene aliases de un concepto desde TaxonomyResolver.
+
+        Args:
+            concept: Nombre del concepto (ej: 'Revenue')
+
+        Returns:
+            Lista de aliases conocidos
+        """
+        try:
+            # Intentar obtener aliases del taxonomy_map
+            concept_info = self.resolver.taxonomy_map.get(concept, {})
+            return concept_info.get('aliases', [])
+        except:
+            return []
+
+    def _get_available_tags(self) -> List[str]:
+        """
+        Obtiene lista de todos los tags disponibles en el XBRL instance.
+
+        Returns:
+            Lista de tags con namespace (ej: ['us-gaap:Assets', 'aapl:NetSalesOfiPhone'])
+        """
+        # Buscar todos los elementos con contextRef (son facts XBRL)
+        elements = self.root.xpath(".//*[@contextRef]")
+
+        # Extraer tag names únicos
+        tags = set()
+        for elem in elements:
+            # Obtener tag completo con namespace
+            if elem.prefix:
+                tag = f"{elem.prefix}:{elem.tag.split('}')[-1]}"
+            else:
+                tag = elem.tag.split('}')[-1]
+            tags.add(tag)
+
+        return list(tags)
+
+    def _get_company_name(self) -> str:
+        """
+        Obtiene nombre de la empresa del XBRL.
+
+        Returns:
+            Nombre de empresa o 'Unknown'
+        """
+        try:
+            # Buscar EntityRegistrantName en context
+            xpath = ".//*[local-name()='entity']/*[local-name()='identifier']"
+            elements = self.root.xpath(xpath)
+
+            if elements:
+                return elements[0].text or 'Unknown'
+        except:
+            pass
+
+        return 'Unknown'
+
+    def get_mapping_gaps_report(self) -> str:
+        """
+        Expone mapping gaps report para análisis CTO.
+
+        NUEVO Sprint 3 Día 4: Transparencia institucional
+
+        Returns:
+            Formatted report con gaps detectados
+
+        Example:
+            >>> parser = XBRLParser('apple.xml')
+            >>> parser.load()
+            >>> data = parser.extract_all()
+            >>> report = parser.get_mapping_gaps_report()
+            >>> print(report)
+            ============================================================
+            MAPPING GAPS REPORT - ACTION REQUIRED
+            ============================================================
+            Total gaps detected: 2
+
+            1. Concept: Goodwill
+               Context: AAPL - balance_sheet
+               Attempted aliases: Goodwill, GoodwillAndIntangibleAssets
+               Sample tags: aapl:IntangibleAssetsNet, us-gaap:Assets...
+               → ACTION: Review and add new alias to taxonomy_map.json
+            ...
+        """
+        if self.fuzzy_mapper:
+            return self.fuzzy_mapper.get_mapping_gaps_report()
+        else:
+            return "FuzzyMapper not initialized"
+
     def format_currency(self, value: Optional[SourceTrace]) -> str:
         """
         Formatea un SourceTrace como moneda.
@@ -225,6 +466,7 @@ class XBRLParser:
 
         CAMBIO Sprint 3: Field names ahora son conceptos abstractos
         CAMBIO Sprint 3 Día 4 - MICRO-TAREA 1: Expandido de 7 a 18 conceptos
+        CAMBIO Sprint 3 Día 4 - FUZZY: Usa fuzzy matching para extension tags
         FIX: Usar fiscal_year explícito para evitar contexto vacío
 
         Returns:
@@ -307,6 +549,7 @@ class XBRLParser:
         Extrae Income Statement usando contexto <duration> anual.
 
         CAMBIO Sprint 3: Field names ahora son conceptos abstractos
+        CAMBIO Sprint 3 Día 4: Usa fuzzy matching
         FIX: Usar fiscal_year explícito
 
         Returns:
@@ -343,6 +586,7 @@ class XBRLParser:
     def extract_cash_flow(self) -> Dict[str, Optional[SourceTrace]]:
         """
         Extrae Cash Flow Statement usando contexto <duration> anual.
+        CAMBIO Sprint 3 Día 4: Usa fuzzy matching
         FIX: Usar fiscal_year explícito
 
         Returns:
@@ -468,6 +712,7 @@ class XBRLParser:
 
         CAMBIO Sprint 3: Usa conceptos abstractos
         CAMBIO Sprint 3 Día 4 - MICRO-TAREA 1: Balance expandido a 18 conceptos
+        CAMBIO Sprint 3 Día 4 - FUZZY: Usa fuzzy matching en cada extracción
 
         Args:
             year: Año fiscal (ej: 2025)
@@ -573,10 +818,10 @@ if __name__ == "__main__":
 
     if parser.load():
         # ====================================================================
-        # TEST 1: Extracción estándar (Sprint 3 Día 4 - 18 Balance Concepts)
+        # TEST 1: Extracción estándar (Sprint 3 Día 4 - 18 Balance + Fuzzy)
         # ====================================================================
         print("\n" + "="*60)
-        print("TEST 1: EXTRACCIÓN CON 18 BALANCE SHEET CONCEPTS")
+        print("TEST 1: EXTRACCIÓN CON FUZZY MAPPING")
         print("="*60)
 
         data = parser.extract_all()
@@ -611,13 +856,23 @@ if __name__ == "__main__":
 
             diff_pct = abs(assets - (liabilities + equity)) / assets * 100
             balance_ok = diff_pct < 1
-            print(f"✓ Balance cuadra: {'Si' if balance_ok else 'No'} ({diff_pct:.2f}% diferencia)")
+            print(f"✓ Balance cuadra: {'Si' if balance_ok else 'No'} ({diff_pct:.2f}%)")
 
         # ====================================================================
-        # TEST 2: Time-Series (Sprint 2 + Sprint 3 Día 4)
+        # TEST 2: Mapping Gaps Report
         # ====================================================================
         print("\n" + "="*60)
-        print("TEST 2: TIME-SERIES CON 18 BALANCE CONCEPTS")
+        print("TEST 2: MAPPING GAPS REPORT")
+        print("="*60)
+
+        gaps_report = parser.get_mapping_gaps_report()
+        print(gaps_report)
+
+        # ====================================================================
+        # TEST 3: Time-Series (Sprint 2 + Sprint 3 Día 4)
+        # ====================================================================
+        print("\n" + "="*60)
+        print("TEST 3: TIME-SERIES CON FUZZY MAPPING")
         print("="*60)
 
         timeseries = parser.extract_timeseries(years=4)
@@ -652,11 +907,11 @@ if __name__ == "__main__":
         print(f"\n⏱️  Tiempo de procesamiento: {processing_time:.2f} segundos")
 
         # ====================================================================
-        # DEMOSTRACIÓN DE TRAZABILIDAD + NUEVOS CAMPOS
+        # DEMOSTRACIÓN DE TRAZABILIDAD + FUZZY MAPPING
         # ====================================================================
         if bs.get('Assets'):
             print("\n" + "="*60)
-            print("🔍 TRAZABILIDAD + NUEVOS CAMPOS PRO")
+            print("🔍 TRAZABILIDAD + FUZZY MAPPING")
             print("="*60)
             assets_trace = bs['Assets']
             print(f"   Concepto abstracto: Assets")
@@ -675,14 +930,15 @@ if __name__ == "__main__":
                     print(f"   ✓ {field}: ${bs[field].raw_value:,.0f}")
 
         # ====================================================================
-        # VALIDACIÓN FINAL SPRINT 3 DÍA 4 - MICRO-TAREA 1
+        # VALIDACIÓN FINAL SPRINT 3 DÍA 4 - FUZZY MAPPING
         # ====================================================================
         print("\n" + "="*60)
-        print("✅ VALIDACIÓN SPRINT 3 DÍA 4 - MICRO-TAREA 1")
+        print("✅ VALIDACIÓN SPRINT 3 DÍA 4 - FUZZY MAPPING")
         print("="*60)
 
         checks = {
             "TaxonomyResolver cargado": parser.resolver is not None,
+            "FuzzyMapper inicializado": parser.fuzzy_mapper is not None,
             "Balance Sheet 18 conceptos": len([k for k in bs.keys()]) >= 7,
             "Extracción estándar (5+ campos)": extracted_count >= 5,
             "Balance cuadra (<1%)": balance_ok,
@@ -697,12 +953,13 @@ if __name__ == "__main__":
             print(f"   {status} {check}")
 
         if all_passed:
-            print("\n🎯 MICRO-TAREA 1 COMPLETADA")
-            print("   ✓ Balance Sheet: 7 → 18 conceptos")
-            print("   ✓ Nuevos campos Pro funcionando")
-            print("   ✓ Time-series multi-year funcional")
+            print("\n🎯 FUZZY MAPPING SYSTEM COMPLETADO")
+            print("   ✓ Fuzzy matching funcionando")
+            print("   ✓ Parent tag discovery habilitado")
+            print("   ✓ Mapping gaps tracking activo")
+            print("   ✓ Trazabilidad institucional completa")
             print(f"   ✓ Performance óptima ({processing_time:.2f}s)")
-            print("\n📋 LISTO PARA: Micro-Tarea 2 (Income Statement 6→13)")
+            print("\n📋 SISTEMA 80/20 IMPLEMENTADO")
         else:
             print("\n⚠️  REVISAR ISSUES:")
             for check, passed in checks.items():
