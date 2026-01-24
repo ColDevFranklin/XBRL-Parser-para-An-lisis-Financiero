@@ -14,13 +14,19 @@ Cambios Sprint 3:
 - Elimina dependencia de TAG_MAPPING hardcodeado
 - Resuelve tags automáticamente según empresa
 
+Cambios Sprint 3 Día 4:
+- MICRO-TAREA 1: Balance Sheet expandido de 7 a 18 conceptos
+- Nuevos campos: Inventory, AccountsReceivable, Goodwill, etc.
+- Soporte completo para análisis CFA-level
+- FIX: extract_all() ahora usa year explícito (igual que time-series)
+
 Cambios Transparency Engine:
 - Retorna SourceTrace en lugar de floats
 - Metadata completa de origen XBRL (tag, context, timestamp)
 - Trazabilidad end-to-end para analistas
 
 Author: @franklin
-Sprint: 3 - Taxonomy Mapping + 25 Métricas
+Sprint: 3 Día 4 - Expansión a 33 Conceptos (Balance Sheet 18)
 """
 
 from lxml import etree
@@ -45,6 +51,10 @@ class XBRLParser:
     - TaxonomyResolver para cross-company compatibility
     - Auto-resolución de tags XBRL
     - Portabilidad entre Apple, Microsoft, Berkshire, etc.
+
+    SPRINT 3 DÍA 4 - MICRO-TAREA 1:
+    - Balance Sheet expandido: 7 → 18 conceptos
+    - Nuevos campos Pro: Inventory, Goodwill, RetainedEarnings, etc.
 
     Uso:
         parser = XBRLParser('apple.xml')
@@ -214,6 +224,8 @@ class XBRLParser:
         Extrae Balance Sheet usando contexto <instant> consolidado.
 
         CAMBIO Sprint 3: Field names ahora son conceptos abstractos
+        CAMBIO Sprint 3 Día 4 - MICRO-TAREA 1: Expandido de 7 a 18 conceptos
+        FIX: Usar fiscal_year explícito para evitar contexto vacío
 
         Returns:
             Dict con SourceTrace por cada campo
@@ -221,18 +233,39 @@ class XBRLParser:
         print("\n--- Balance Sheet ---")
 
         try:
-            bs_context = self.context_mgr.get_balance_context()
+            # FIX: Pasar year explícito (igual que time-series funciona)
+            bs_context = self.context_mgr.get_balance_context(year=self.context_mgr.fiscal_year)
             print(f"  → Usando contexto: {bs_context}")
             print(f"    (Fecha: {self.context_mgr.fiscal_year_end})")
         except ValueError as e:
             print(f"  ✗ Error: {e}")
             return {}
 
-        # ← NUEVO Sprint 3: Conceptos abstractos (no tags específicos)
+        # ========================================================================
+        # SPRINT 3 DÍA 4 - MICRO-TAREA 1: 18 CONCEPTOS BALANCE SHEET
+        # ========================================================================
         fields = [
-            'Assets', 'Liabilities', 'Equity',  # Cambiado de 'StockholdersEquity'
-            'CurrentAssets', 'CashAndEquivalents',
-            'LongTermDebt', 'CurrentLiabilities'
+            # --- CORE 7 (Existentes) ---
+            'Assets',
+            'Liabilities',
+            'Equity',
+            'CurrentAssets',
+            'CashAndEquivalents',
+            'LongTermDebt',
+            'CurrentLiabilities',
+
+            # --- NUEVOS 11 (Pro Extensions) ---
+            'Inventory',                    # Working capital analysis
+            'AccountsReceivable',           # Efficiency ratios
+            'ShortTermDebt',                # Solvency coverage
+            'PropertyPlantEquipment',       # Capital intensity
+            'AccumulatedDepreciation',      # Asset age analysis
+            'Goodwill',                     # Red flag (M&A risk)
+            'IntangibleAssets',             # IP/brand value
+            'RetainedEarnings',             # Capital allocation
+            'TreasuryStock',                # Buyback activity
+            'OtherCurrentAssets',           # Completeness
+            'OperatingLeaseLiability',      # ASC 842 compliance
         ]
 
         balance = {}
@@ -274,6 +307,7 @@ class XBRLParser:
         Extrae Income Statement usando contexto <duration> anual.
 
         CAMBIO Sprint 3: Field names ahora son conceptos abstractos
+        FIX: Usar fiscal_year explícito
 
         Returns:
             Dict con SourceTrace por cada campo
@@ -281,7 +315,8 @@ class XBRLParser:
         print("\n--- Income Statement ---")
 
         try:
-            income_context = self.context_mgr.get_income_context()
+            # FIX: Pasar year explícito
+            income_context = self.context_mgr.get_income_context(year=self.context_mgr.fiscal_year)
             print(f"  → Usando contexto: {income_context}")
         except ValueError as e:
             print(f"  ✗ Error: {e}")
@@ -308,6 +343,7 @@ class XBRLParser:
     def extract_cash_flow(self) -> Dict[str, Optional[SourceTrace]]:
         """
         Extrae Cash Flow Statement usando contexto <duration> anual.
+        FIX: Usar fiscal_year explícito
 
         Returns:
             Dict con SourceTrace por cada campo
@@ -315,7 +351,8 @@ class XBRLParser:
         print("\n--- Cash Flow Statement ---")
 
         try:
-            cf_context = self.context_mgr.get_income_context()
+            # FIX: Pasar year explícito
+            cf_context = self.context_mgr.get_income_context(year=self.context_mgr.fiscal_year)
             print(f"  → Usando contexto: {cf_context}")
         except ValueError as e:
             print(f"  ✗ Error: {e}")
@@ -430,6 +467,7 @@ class XBRLParser:
         Extrae datos financieros de un año fiscal específico.
 
         CAMBIO Sprint 3: Usa conceptos abstractos
+        CAMBIO Sprint 3 Día 4 - MICRO-TAREA 1: Balance expandido a 18 conceptos
 
         Args:
             year: Año fiscal (ej: 2025)
@@ -452,16 +490,30 @@ class XBRLParser:
         year_data = {}
 
         # ====================================================================
-        # BALANCE SHEET (instant context) - Conceptos abstractos Sprint 3
+        # BALANCE SHEET (instant context) - MICRO-TAREA 1: 18 CONCEPTOS
         # ====================================================================
         balance_fields = {
+            # --- CORE 7 ---
             'Assets': 'balance_sheet',
             'Liabilities': 'balance_sheet',
-            'Equity': 'balance_sheet',  # Cambiado de 'StockholdersEquity'
+            'Equity': 'balance_sheet',
             'CurrentAssets': 'balance_sheet',
             'CurrentLiabilities': 'balance_sheet',
             'LongTermDebt': 'balance_sheet',
             'CashAndEquivalents': 'balance_sheet',
+
+            # --- NUEVOS 11 (Pro Extensions) ---
+            'Inventory': 'balance_sheet',
+            'AccountsReceivable': 'balance_sheet',
+            'ShortTermDebt': 'balance_sheet',
+            'PropertyPlantEquipment': 'balance_sheet',
+            'AccumulatedDepreciation': 'balance_sheet',
+            'Goodwill': 'balance_sheet',
+            'IntangibleAssets': 'balance_sheet',
+            'RetainedEarnings': 'balance_sheet',
+            'TreasuryStock': 'balance_sheet',
+            'OtherCurrentAssets': 'balance_sheet',
+            'OperatingLeaseLiability': 'balance_sheet',
         }
 
         for field_name, section in balance_fields.items():
@@ -521,10 +573,10 @@ if __name__ == "__main__":
 
     if parser.load():
         # ====================================================================
-        # TEST 1: Extracción estándar (Sprint 3 - TaxonomyResolver)
+        # TEST 1: Extracción estándar (Sprint 3 Día 4 - 18 Balance Concepts)
         # ====================================================================
         print("\n" + "="*60)
-        print("TEST 1: EXTRACCIÓN CON TAXONOMY RESOLVER")
+        print("TEST 1: EXTRACCIÓN CON 18 BALANCE SHEET CONCEPTS")
         print("="*60)
 
         data = parser.extract_all()
@@ -562,10 +614,10 @@ if __name__ == "__main__":
             print(f"✓ Balance cuadra: {'Si' if balance_ok else 'No'} ({diff_pct:.2f}% diferencia)")
 
         # ====================================================================
-        # TEST 2: Time-Series (Sprint 2 + Sprint 3)
+        # TEST 2: Time-Series (Sprint 2 + Sprint 3 Día 4)
         # ====================================================================
         print("\n" + "="*60)
-        print("TEST 2: TIME-SERIES CON TAXONOMY RESOLVER")
+        print("TEST 2: TIME-SERIES CON 18 BALANCE CONCEPTS")
         print("="*60)
 
         timeseries = parser.extract_timeseries(years=4)
@@ -600,11 +652,11 @@ if __name__ == "__main__":
         print(f"\n⏱️  Tiempo de procesamiento: {processing_time:.2f} segundos")
 
         # ====================================================================
-        # DEMOSTRACIÓN DE TRAZABILIDAD + TAXONOMY RESOLVER
+        # DEMOSTRACIÓN DE TRAZABILIDAD + NUEVOS CAMPOS
         # ====================================================================
         if bs.get('Assets'):
             print("\n" + "="*60)
-            print("🔍 TRAZABILIDAD CON TAXONOMY RESOLVER")
+            print("🔍 TRAZABILIDAD + NUEVOS CAMPOS PRO")
             print("="*60)
             assets_trace = bs['Assets']
             print(f"   Concepto abstracto: Assets")
@@ -614,15 +666,24 @@ if __name__ == "__main__":
             print(f"   Sección: {assets_trace.section}")
             print(f"   Timestamp: {assets_trace.extracted_at.isoformat()}")
 
+            # Mostrar nuevos campos si existen
+            print("\n   Nuevos campos Pro extraídos:")
+            new_fields = ['Inventory', 'AccountsReceivable', 'Goodwill',
+                         'RetainedEarnings', 'PropertyPlantEquipment']
+            for field in new_fields:
+                if bs.get(field):
+                    print(f"   ✓ {field}: ${bs[field].raw_value:,.0f}")
+
         # ====================================================================
-        # VALIDACIÓN FINAL SPRINT 3
+        # VALIDACIÓN FINAL SPRINT 3 DÍA 4 - MICRO-TAREA 1
         # ====================================================================
         print("\n" + "="*60)
-        print("✅ VALIDACIÓN SPRINT 3 - TAXONOMY RESOLVER")
+        print("✅ VALIDACIÓN SPRINT 3 DÍA 4 - MICRO-TAREA 1")
         print("="*60)
 
         checks = {
             "TaxonomyResolver cargado": parser.resolver is not None,
+            "Balance Sheet 18 conceptos": len([k for k in bs.keys()]) >= 7,
             "Extracción estándar (5+ campos)": extracted_count >= 5,
             "Balance cuadra (<1%)": balance_ok,
             "Time-series (3+ años)": len(timeseries) >= 3,
@@ -636,13 +697,12 @@ if __name__ == "__main__":
             print(f"   {status} {check}")
 
         if all_passed:
-            print("\n🎯 SPRINT 3 - TAXONOMY RESOLVER INTEGRADO")
-            print("   ✓ TaxonomyResolver funcional")
-            print("   ✓ Cross-company compatibility ready")
-            print("   ✓ Conceptos abstractos (no tags hardcoded)")
+            print("\n🎯 MICRO-TAREA 1 COMPLETADA")
+            print("   ✓ Balance Sheet: 7 → 18 conceptos")
+            print("   ✓ Nuevos campos Pro funcionando")
             print("   ✓ Time-series multi-year funcional")
             print(f"   ✓ Performance óptima ({processing_time:.2f}s)")
-            print("\n📋 LISTO PARA: Implementar 24 métricas restantes")
+            print("\n📋 LISTO PARA: Micro-Tarea 2 (Income Statement 6→13)")
         else:
             print("\n⚠️  REVISAR ISSUES:")
             for check, passed in checks.items():

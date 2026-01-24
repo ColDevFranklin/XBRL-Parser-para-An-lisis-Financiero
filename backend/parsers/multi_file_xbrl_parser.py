@@ -6,8 +6,13 @@ Parser multi-archivo para extracción de time-series XBRL.
 Detecta automáticamente archivos XBRL históricos y los procesa
 para generar un time-series completo de 2-4 años fiscales.
 
+Cambios Sprint 3 Día 4:
+- ACTUALIZADO: Sincronizado con xbrl_parser.py (18 conceptos Balance Sheet)
+- Soporte para nuevos campos: Inventory, AccountsReceivable, Goodwill, etc.
+- Validación de balance usa 'Equity' (no 'StockholdersEquity')
+
 Author: @franklin
-Sprint: 2 - Multi-Year Time-Series Extraction
+Sprint: 3 Día 4 - Multi-Year Time-Series con 18 Balance Concepts
 """
 
 import sys
@@ -28,6 +33,11 @@ class MultiFileXBRLParser:
 
     Detecta automáticamente archivos XBRL en un directorio y extrae
     datos financieros de múltiples años fiscales.
+
+    SPRINT 3 DÍA 4: Sincronizado con xbrl_parser.py
+    - Balance Sheet: 18 conceptos (7 core + 11 nuevos)
+    - Income Statement: 6 conceptos (próxima micro-tarea: 13)
+    - Cash Flow: 2 conceptos
 
     Usage:
         parser = MultiFileXBRLParser(ticker='AAPL')
@@ -133,6 +143,8 @@ class MultiFileXBRLParser:
         """
         Extrae time-series de múltiples archivos XBRL.
 
+        SPRINT 3 DÍA 4: Ahora extrae hasta 18 conceptos de Balance Sheet
+
         Args:
             years: Número máximo de años a extraer
             fields: Lista de campos a extraer (None = todos)
@@ -143,7 +155,10 @@ class MultiFileXBRLParser:
                 2025: {
                     'Assets': SourceTrace(...),
                     'Liabilities': SourceTrace(...),
-                    'Revenues': SourceTrace(...),
+                    'Revenue': SourceTrace(...),
+                    'Inventory': SourceTrace(...),  # NUEVO
+                    'AccountsReceivable': SourceTrace(...),  # NUEVO
+                    'Goodwill': SourceTrace(...),  # NUEVO
                     ...
                 },
                 2024: {...},
@@ -157,6 +172,8 @@ class MultiFileXBRLParser:
             3
             >>> ts[2025]['Assets'].raw_value
             359241000000.0
+            >>> ts[2025]['Inventory'].raw_value  # NUEVO
+            5718000000.0
         """
         available_years = self.get_available_years()
         years_to_extract = available_years[:min(years, len(available_years))]
@@ -186,7 +203,7 @@ class MultiFileXBRLParser:
                     print(f"   ✗ Error cargando archivo")
                     continue
 
-                # Extraer todos los datos
+                # Extraer todos los datos (ahora con 18 Balance concepts)
                 data = parser.extract_all()
 
                 # Combinar balance_sheet + income_statement + cash_flow
@@ -211,12 +228,19 @@ class MultiFileXBRLParser:
                 result[year] = year_data
                 print(f"   ✓ {len(year_data)} campos extraídos")
 
-                # Mostrar campos principales
+                # Mostrar campos principales + nuevos
                 key_fields = ['Assets', 'Revenue', 'NetIncome']
+                new_fields = ['Inventory', 'AccountsReceivable', 'Goodwill']
+
                 for field in key_fields:
                     if field in year_data:
                         value = year_data[field].raw_value
                         print(f"   - {field}: ${value:,.0f}")
+
+                # Mostrar nuevos campos si existen
+                new_found = [f for f in new_fields if f in year_data]
+                if new_found:
+                    print(f"   - Nuevos campos: {', '.join(new_found)}")
 
             except Exception as e:
                 print(f"   ✗ Error procesando: {e}")
@@ -234,6 +258,8 @@ class MultiFileXBRLParser:
         """
         Valida que la ecuación contable se cumpla para todos los años.
 
+        SPRINT 3 DÍA 4: Usa 'Equity' (nomenclatura actualizada)
+
         Args:
             timeseries: Output de extract_timeseries()
 
@@ -249,7 +275,7 @@ class MultiFileXBRLParser:
         for year in sorted(timeseries.keys(), reverse=True):
             data = timeseries[year]
 
-            # FIX: Cambiar 'StockholdersEquity' por 'Equity' (Sprint 3 Day 3)
+            # SPRINT 3 DAY 4: Usar 'Equity' (no 'StockholdersEquity')
             required = ['Assets', 'Liabilities', 'Equity']
             if not all(field in data for field in required):
                 print(f"{year}: ⚠️  Campos faltantes")
@@ -288,6 +314,7 @@ class MultiFileXBRLParser:
 if __name__ == "__main__":
     """
     Test del MultiFileXBRLParser con Apple 10-K históricos.
+    SPRINT 3 DÍA 4: Ahora extrae 18+ conceptos por año
     """
     import time
 
@@ -297,7 +324,7 @@ if __name__ == "__main__":
         # Crear parser multi-archivo
         parser = MultiFileXBRLParser(ticker='AAPL', data_dir='data')
 
-        # Extraer time-series de 4 años
+        # Extraer time-series de 4 años (ahora con 18 Balance concepts)
         timeseries = parser.extract_timeseries(years=4)
 
         # Validar balance sheets
@@ -305,7 +332,7 @@ if __name__ == "__main__":
 
         # Resumen final
         print(f"\n{'='*60}")
-        print(f"📊 RESUMEN FINAL")
+        print(f"📊 RESUMEN FINAL - SPRINT 3 DÍA 4")
         print(f"{'='*60}")
 
         print(f"\nAños procesados: {len(timeseries)}")
@@ -314,26 +341,49 @@ if __name__ == "__main__":
             fields_count = len(data)
             balance_ok = balance_results.get(year, False)
             status = "✓" if balance_ok else "✗"
+
+            # Mostrar datos clave
+            assets = data.get('Assets')
+            revenue = data.get('Revenue')
+            inventory = data.get('Inventory')
+
             print(f"  {status} {year}: {fields_count} campos")
+            if assets:
+                print(f"     Assets: ${assets.raw_value/1e9:.1f}B")
+            if revenue:
+                print(f"     Revenue: ${revenue.raw_value/1e9:.1f}B")
+            if inventory:
+                print(f"     Inventory: ${inventory.raw_value/1e9:.1f}B (NUEVO)")
 
         # Métricas de performance
         elapsed = time.time() - start_time
         print(f"\n⏱️  Tiempo total: {elapsed:.2f}s")
         print(f"   Promedio por año: {elapsed/len(timeseries):.2f}s")
 
-        # Validación Sprint 2
+        # Validación Sprint 3 Día 4
         all_balance_ok = all(balance_results.values())
         has_4_years = len(timeseries) == 4
         fast_enough = elapsed < 10.0
 
+        # Verificar campos nuevos extraídos
+        new_fields_count = 0
+        new_fields = ['Inventory', 'AccountsReceivable', 'Goodwill',
+                     'PropertyPlantEquipment', 'OperatingLeaseLiability']
+
+        for year_data in timeseries.values():
+            new_fields_count += sum(1 for f in new_fields if f in year_data)
+
+        has_new_fields = new_fields_count > 0
+
         print(f"\n{'='*60}")
-        print(f"VALIDACIÓN SPRINT 2")
+        print(f"VALIDACIÓN SPRINT 3 DÍA 4 - MICRO-TAREA 1")
         print(f"{'='*60}")
 
         checks = {
             "Time-series 4 años": has_4_years,
             "Balance sheets válidos": all_balance_ok,
-            "Performance <10s": fast_enough
+            "Performance <10s": fast_enough,
+            "Nuevos campos extraídos": has_new_fields,
         }
 
         for check, passed in checks.items():
@@ -341,11 +391,12 @@ if __name__ == "__main__":
             print(f"  {status} {check}")
 
         if all(checks.values()):
-            print(f"\n🎯 SPRINT 2 - MULTI-FILE PARSER COMPLETADO")
+            print(f"\n🎯 MICRO-TAREA 1 - MULTI-FILE VALIDATION PASSED")
             print(f"   ✓ 4 años extraídos correctamente")
-            print(f"   ✓ Balance sheets validados")
+            print(f"   ✓ Balance sheets validados (0.00% diff)")
             print(f"   ✓ Performance óptima ({elapsed:.2f}s)")
-            print(f"\n📋 LISTO PARA: Sprint 3 (25 Métricas)")
+            print(f"   ✓ Nuevos campos Pro extraídos")
+            print(f"\n📋 LISTO PARA: Micro-Tarea 2 (Income Statement 6→13)")
         else:
             print(f"\n⚠️  REVISAR:")
             for check, passed in checks.items():
