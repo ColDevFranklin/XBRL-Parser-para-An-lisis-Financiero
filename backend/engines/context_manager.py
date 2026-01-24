@@ -13,6 +13,7 @@ Solución Time-Series: Identificar TODOS los años fiscales disponibles (3-5 añ
 Author: @franklin
 Sprint: 2 - Context Management
 Sprint: Pre-Sprint 3 - Time-Series Analysis
+Sprint: 3 Paso 3.2 - BRK.A Fix (DocumentPeriodEndDate)
 """
 
 from lxml import etree
@@ -93,15 +94,35 @@ class ContextManager:
 
     def _identify_fiscal_period(self) -> None:
         """
-        Identifica el año fiscal más reciente buscando el <instant> más tardío
-        en contextos consolidados (sin segmentos).
+        Identifica el año fiscal más reciente usando DocumentPeriodEndDate.
 
-        CORREGIDO: Ahora busca el segundo <instant> más reciente para evitar
-        fechas de filing (10-K se presenta ~2 semanas después del year-end).
+        CAMBIO SPRINT 3 PASO 3.2: Usa DocumentPeriodEndDate como source of truth
+        en lugar de asumir que el segundo instant es el correcto.
+
+        Esto maneja correctamente:
+        - 10-K anuales (ej: Apple 2025-09-27)
+        - 10-Q trimestrales (ej: Berkshire 2025-09-30)
+        - Empresas con múltiples filing dates
         """
-        instant_dates = []
+        # OPCIÓN 1: Buscar DocumentPeriodEndDate (más confiable)
+        doc_period_end = self.root.find('.//dei:DocumentPeriodEndDate', self.NS)
 
-        # Buscar todos los contextos consolidados
+        if doc_period_end is not None:
+            self._fiscal_year_end = datetime.strptime(
+                doc_period_end.text, '%Y-%m-%d'
+            ).date()
+            self._fiscal_year = self._fiscal_year_end.year
+
+            logger.info(
+                f"fiscal_period_identified: year={self._fiscal_year}, "
+                f"year_end={self._fiscal_year_end} (from DocumentPeriodEndDate)"
+            )
+            return
+
+        # OPCIÓN 2 (Fallback): Buscar instant más reciente consolidado
+        logger.warning("DocumentPeriodEndDate not found, using instant fallback")
+
+        instant_dates = []
         contexts = self.root.findall('.//xbrli:context', self.NS)
 
         for ctx in contexts:
@@ -118,20 +139,14 @@ class ContextManager:
         if not instant_dates:
             raise ValueError("No consolidated contexts with <instant> found")
 
-        # Ordenar y tomar el SEGUNDO más reciente
-        # (el primero suele ser la fecha de filing, no year-end)
+        # Tomar el más reciente
         instant_dates.sort(reverse=True)
-
-        if len(instant_dates) >= 2:
-            self._fiscal_year_end = instant_dates[1]
-        else:
-            self._fiscal_year_end = instant_dates[0]
-
+        self._fiscal_year_end = instant_dates[0]
         self._fiscal_year = self._fiscal_year_end.year
 
         logger.info(
             f"fiscal_period_identified: year={self._fiscal_year}, "
-            f"year_end={self._fiscal_year_end}"
+            f"year_end={self._fiscal_year_end} (from instant fallback)"
         )
 
     def _initialize_multiyear(self) -> None:
@@ -230,7 +245,9 @@ class ContextManager:
         fiscal_year: int
     ) -> Optional[Tuple[str, date, date]]:
         """
-        NUEVO: Busca duration context anual para un año específico.
+        NUEVO: Busca duration context anual O trimestral para un año específico.
+
+        CAMBIO SPRINT 3 PASO 3.2: Soporta 10-Q trimestrales además de 10-K anuales
 
         Args:
             fiscal_year: Año fiscal a buscar
@@ -239,6 +256,8 @@ class ContextManager:
             (context_id, start_date, end_date) o None
         """
         contexts = self.root.findall('.//xbrli:context', self.NS)
+
+        candidates = []
 
         for ctx in contexts:
             # Filtrar solo consolidados
@@ -259,13 +278,32 @@ class ContextManager:
             start_date = datetime.strptime(start_elem.text, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_elem.text, '%Y-%m-%d').date()
 
-            # Verificar si es periodo anual para este año
+            # Verificar si es periodo para este año
             if end_date.year == fiscal_year:
                 duration = (end_date - start_date).days
 
-                # Periodo anual: 350-370 días
-                if 350 <= duration <= 370:
-                    return (ctx.get('id'), start_date, end_date)
+                # NUEVO: Aceptar trimestral (80-100 días) O anual (350-370 días)
+                # Quarterly: ~90 días (ejemplo: 2025-07-01 a 2025-09-30)
+                # Annual: ~365 días (ejemplo: 2024-10-01 a 2025-09-27)
+                if (80 <= duration <= 100) or (350 <= duration <= 370):
+                    candidates.append((ctx.get('id'), start_date, end_date, duration))
+
+        if not candidates:
+            return None
+
+        # Prioridad: Anual > Trimestral
+        # Si hay contexto anual, usarlo; sino, usar trimestral
+        annual = [c for c in candidates if c[3] >= 350]
+        quarterly = [c for c in candidates if c[3] < 100]
+
+        if annual:
+            # Tomar el más cercano a 365 días
+            annual.sort(key=lambda x: abs(x[3] - 365))
+            return annual[0][:3]  # (ctx_id, start, end)
+        elif quarterly:
+            # Tomar el más reciente (último trimestre)
+            quarterly.sort(key=lambda x: x[2], reverse=True)  # Ordenar por end_date
+            return quarterly[0][:3]
 
         return None
 
@@ -327,12 +365,13 @@ class ContextManager:
 
     def get_income_context(self, year: Optional[int] = None) -> str:
         """
-        Devuelve el contextID para Income Statement (periodo anual).
+        Devuelve el contextID para Income Statement (periodo anual o trimestral).
 
         Reglas:
         - Debe tener <duration> con endDate = fiscal_year_end
-        - startDate debe ser ~1 año antes (350-370 días)
+        - startDate debe ser ~1 año antes (350-370 días) O ~1 trimestre (80-100 días)
         - NO debe tener <segment>
+        - PRIORIDAD: Anual > Trimestral
 
         Args:
             year: Año fiscal específico, o None para más reciente (NUEVO)
@@ -348,7 +387,8 @@ class ContextManager:
             target_end = self.fiscal_year_end
             contexts = self.root.findall('.//xbrli:context', self.NS)
 
-            candidates = []
+            candidates_annual = []
+            candidates_quarterly = []
 
             for ctx in contexts:
                 # Filtro 1: Sin segmentos
@@ -367,7 +407,7 @@ class ContextManager:
                 end_date = datetime.strptime(end_date_elem.text, '%Y-%m-%d').date()
 
                 if end_date == target_end:
-                    # Verificar que sea periodo anual
+                    # Verificar que sea periodo anual O trimestral
                     start_date_elem = period.find('xbrli:startDate', self.NS)
                     if start_date_elem is not None:
                         start_date = datetime.strptime(
@@ -378,20 +418,36 @@ class ContextManager:
 
                         # Periodo anual: 350-370 días
                         if 350 <= days <= 370:
-                            candidates.append((ctx.get('id'), days))
+                            candidates_annual.append((ctx.get('id'), days))
+                        # NUEVO: Periodo trimestral: 80-100 días (10-Q)
+                        elif 80 <= days <= 100:
+                            candidates_quarterly.append((ctx.get('id'), days))
 
-            if not candidates:
+            # Prioridad: Anual > Trimestral
+            if candidates_annual:
+                # Si hay múltiples, elegir el más cercano a 365 días
+                candidates_annual.sort(key=lambda x: abs(x[1] - 365))
+                self._income_context = candidates_annual[0][0]
+
+                logger.info(
+                    f"income_context_found: context_id={self._income_context}, "
+                    f"duration_days={candidates_annual[0][1]} (annual)"
+                )
+                return self._income_context
+
+            elif candidates_quarterly:
+                # Usar trimestral como fallback
+                candidates_quarterly.sort(key=lambda x: abs(x[1] - 90))
+                self._income_context = candidates_quarterly[0][0]
+
+                logger.info(
+                    f"income_context_found: context_id={self._income_context}, "
+                    f"duration_days={candidates_quarterly[0][1]} (quarterly)"
+                )
+                return self._income_context
+
+            else:
                 raise ValueError(f"No income context found for {target_end}")
-
-            # Si hay múltiples, elegir el más cercano a 365 días
-            candidates.sort(key=lambda x: abs(x[1] - 365))
-            self._income_context = candidates[0][0]
-
-            logger.info(
-                f"income_context_found: context_id={self._income_context}, "
-                f"duration_days={candidates[0][1]}"
-            )
-            return self._income_context
 
         # Time-Series behavior: con year param (NUEVO)
         else:

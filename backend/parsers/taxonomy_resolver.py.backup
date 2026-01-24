@@ -19,7 +19,7 @@ Sprint: 3 - Taxonomy Mapping Layer
 
 import json
 from pathlib import Path
-from typing import Optional, Dict, List, Union
+from typing import Optional, Dict, List
 from lxml import etree
 
 
@@ -80,62 +80,8 @@ class TaxonomyResolver:
         with open(self.taxonomy_path, 'r') as f:
             taxonomy = json.load(f)
 
-        # Filtrar metadata y comments
-        taxonomy = {k: v for k, v in taxonomy.items() if not k.startswith('_')}
-
         print(f"✓ Taxonomy map loaded: {len(taxonomy)} concepts")
         return taxonomy
-
-    def _normalize_aliases(self, aliases: Union[List[str], List[Dict]]) -> List[str]:
-        """
-        MICRO-PASO 2: Normaliza aliases a lista de strings.
-
-        Soporta dos formatos:
-        1. Simple (legacy): ["ProfitLoss", "NetIncome"]
-        2. Complex (CFA-level): [{"tag": "ProfitLoss", "priority": 1}, ...]
-
-        Args:
-            aliases: Lista de strings o lista de dicts
-
-        Returns:
-            Lista de strings (tag names) ordenados por priority si aplica
-
-        Example:
-            >>> # Simple format
-            >>> _normalize_aliases(["ProfitLoss", "NetIncome"])
-            ["ProfitLoss", "NetIncome"]
-
-            >>> # Complex format
-            >>> _normalize_aliases([
-            ...     {"tag": "NetIncome", "priority": 2},
-            ...     {"tag": "ProfitLoss", "priority": 1}
-            ... ])
-            ["ProfitLoss", "NetIncome"]  # Ordenado por priority
-        """
-        if not aliases:
-            return []
-
-        # Detectar formato
-        first_item = aliases[0]
-
-        if isinstance(first_item, str):
-            # Formato SIMPLE (legacy) - retornar as-is
-            return aliases
-
-        elif isinstance(first_item, dict):
-            # Formato COMPLEJO (CFA-level)
-            # Ordenar por priority (menor = mayor prioridad)
-            sorted_aliases = sorted(
-                aliases,
-                key=lambda x: x.get('priority', 999)
-            )
-
-            # Extraer solo los tags
-            return [alias['tag'] for alias in sorted_aliases]
-
-        else:
-            # Formato desconocido - intentar convertir a string
-            return [str(alias) for alias in aliases]
 
     def resolve(
         self,
@@ -177,18 +123,15 @@ class TaxonomyResolver:
             available = list(self.taxonomy_map.keys())
             raise ValueError(
                 f"Concept '{concept}' not found in taxonomy map.\n"
-                f"Available concepts: {available[:10]}..."  # Solo primeros 10
+                f"Available concepts: {available}"
             )
 
         concept_def = self.taxonomy_map[concept]
         primary = concept_def["primary"]
-        aliases_raw = concept_def.get("aliases", [])
-
-        # MICRO-PASO 3: Normalizar aliases (maneja string o dict)
-        aliases = self._normalize_aliases(aliases_raw)
+        aliases = concept_def.get("aliases", [])
 
         # 2. Construir lista de candidatos (primary first)
-        candidates = [primary] + aliases if primary else aliases
+        candidates = [primary] + aliases
 
         # 3. Buscar en orden hasta encontrar el primero que existe
         root = xbrl_tree.getroot()
@@ -277,18 +220,6 @@ class TaxonomyResolver:
         """
         return list(self.taxonomy_map.keys())
 
-    def concept_exists(self, concept: str) -> bool:
-        """
-        Verifica si un concepto existe en el taxonomy map.
-
-        Args:
-            concept: Nombre del concepto
-
-        Returns:
-            True si existe, False caso contrario
-        """
-        return concept in self.taxonomy_map
-
 
 # ============================================================================
 # TESTING STANDALONE
@@ -306,7 +237,7 @@ if __name__ == "__main__":
     try:
         resolver = TaxonomyResolver()
         print(f"✓ Taxonomy loaded with {len(resolver.list_concepts())} concepts")
-        print(f"  First 10 concepts: {resolver.list_concepts()[:10]}")
+        print(f"  Concepts: {resolver.list_concepts()}")
     except Exception as e:
         print(f"✗ Error: {e}")
         exit(1)
@@ -324,7 +255,7 @@ if __name__ == "__main__":
             print(f"✓ {concept} → {tag}")
         except ValueError as e:
             print(f"✗ {concept} → NOT FOUND")
-            print(f"  Error: {str(e)[:100]}")
+            print(f"  Error: {e}")
 
     # Test 3: Resolve all
     print("\n--- TEST 3: Resolve All Concepts ---")
@@ -342,7 +273,7 @@ if __name__ == "__main__":
     info = resolver.get_concept_info("NetIncome")
     print(f"NetIncome metadata:")
     print(f"  Primary: {info['primary']}")
-    print(f"  Aliases: {info['aliases'][:3] if len(info['aliases']) > 3 else info['aliases']}")
+    print(f"  Aliases: {info['aliases']}")
     print(f"  Description: {info['description']}")
 
     print("\n" + "=" * 60)
