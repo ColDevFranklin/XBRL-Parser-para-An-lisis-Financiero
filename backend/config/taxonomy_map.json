@@ -1,10 +1,10 @@
 {
   "_metadata": {
-    "version": "1.1.0",
-    "sprint": "3 - Day 4",
+    "version": "1.2.0",
+    "sprint": "3 - Day 4 - MICRO-TAREA 3 COMPLETADA",
     "total_concepts": 33,
-    "description": "Expanded taxonomy: Core 15 + Balance Sheet Extensions (18)",
-    "last_updated": "2025-01-24"
+    "description": "Inventario completo: 18 Balance + 13 Income + 5 Cash Flow",
+    "last_updated": "2025-01-25"
   },
 
   "NetIncome": {
@@ -128,7 +128,7 @@
     "xbrl_namespace": "us-gaap"
   },
 
-  "_comment_new_concepts": "=== 18 NEW CONCEPTS BELOW ===",
+  "_comment_balance_sheet_extensions": "=== BALANCE SHEET EXTENSIONS (11 concepts) ===",
 
   "Inventory": {
     "primary": "InventoryNet",
@@ -213,6 +213,8 @@
     "xbrl_namespace": "us-gaap"
   },
 
+  "_comment_income_statement_extensions": "=== INCOME STATEMENT EXTENSIONS (7 concepts) ===",
+
   "ResearchAndDevelopment": {
     "primary": "ResearchAndDevelopmentExpense",
     "aliases": ["ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"],
@@ -268,6 +270,38 @@
       "SeveranceCosts1"
     ],
     "description": "Restructuring charges",
+    "xbrl_namespace": "us-gaap"
+  },
+
+  "_comment_cash_flow_extensions": "=== CASH FLOW EXTENSIONS (3 concepts) - MICRO-TAREA 3 ===",
+
+  "DividendsPaid": {
+    "primary": "PaymentsOfDividends",
+    "aliases": [
+      "PaymentsOfDividendsCommonStock",
+      "DividendsPaidToCommonShareholders"
+    ],
+    "description": "Cash paid to shareholders as dividends",
+    "xbrl_namespace": "us-gaap"
+  },
+
+  "StockBasedCompensation": {
+    "primary": "ShareBasedCompensation",
+    "aliases": [
+      "AllocatedShareBasedCompensationExpense",
+      "EmployeeServiceShareBasedCompensationNonvestedAwardsTotalCompensationCostNotYetRecognized"
+    ],
+    "description": "Non-cash expense from equity-based employee compensation",
+    "xbrl_namespace": "us-gaap"
+  },
+
+  "ChangeInWorkingCapital": {
+    "primary": "IncreaseDecreaseInOperatingCapital",
+    "aliases": [
+      "IncreaseDecreaseInWorkingCapital",
+      "ChangeInWorkingCapitalExcludingCashAndCashEquivalents"
+    ],
+    "description": "Net change in operating assets and liabilities",
     "xbrl_namespace": "us-gaap"
   }
 }

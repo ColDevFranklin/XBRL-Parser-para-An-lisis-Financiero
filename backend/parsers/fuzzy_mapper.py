@@ -6,9 +6,10 @@ Features:
 - Fuzzy string matching for aliases (80/20 rule)
 - XSD hierarchy navigation (parent tag discovery)
 - Mapping gap tracking for institutional-grade transparency
+- **NEW**: Tie-breaking support for ambiguous matches
 
 Author: @franklin
-Sprint: 3 Día 4 - Fuzzy Mapping System
+Sprint: 3 Día 4 - Fuzzy Mapping System + Tie-Breaking
 """
 
 from typing import Optional, Dict, List, Tuple
@@ -29,15 +30,26 @@ class FuzzyMapper:
     2. Parent tag discovery: Navega jerarquía XSD
     3. Mapping gap tracking: Registra fallos para análisis CTO
 
+    **NEW Sprint 3 Día 5**: Tie-breaking support
+    - fuzzy_match_with_tiebreaker() returns ALL candidates
+    - Caller can validate which candidate produces valid Balance Sheet
+
     Example:
         >>> mapper = FuzzyMapper(similarity_threshold=0.75)
         >>>
-        >>> # Fuzzy match
+        >>> # Fuzzy match (single result)
         >>> tags = ['aapl:NetSalesOfiPhone', 'us-gaap:Assets']
         >>> aliases = ['NetSales', 'SalesRevenue']
         >>> match = mapper.fuzzy_match_alias('Revenue', tags, aliases)
         >>> match
         'aapl:NetSalesOfiPhone'
+        >>>
+        >>> # Fuzzy match with tie-breaking (multiple candidates)
+        >>> tags = ['us-gaap:NetIncome', 'us-gaap:NetIncomeAvailableToCommonStockholders']
+        >>> aliases = ['NetIncome', 'NetIncomeLoss']
+        >>> candidates = mapper.fuzzy_match_with_tiebreaker('NetIncome', tags, aliases)
+        >>> candidates
+        [('us-gaap:NetIncome', 1.0), ('us-gaap:NetIncomeAvailableToCommonStockholders', 0.78)]
         >>>
         >>> # Gap tracking
         >>> mapper.record_mapping_gap('Goodwill', ['Goodwill'], tags, 'AAPL 2025')
@@ -86,6 +98,9 @@ class FuzzyMapper:
         Uses SequenceMatcher for fuzzy string comparison.
         Normaliza strings (lowercase, remove special chars) antes de comparar.
 
+        **NOTE**: Returns FIRST match above threshold. For tie-breaking,
+        use fuzzy_match_with_tiebreaker() instead.
+
         Args:
             concept: Financial concept to find (e.g., "Revenue")
             available_tags: List of actual tags in XBRL instance
@@ -133,6 +148,75 @@ class FuzzyMapper:
                     best_match = tag
 
         return best_match
+
+    def fuzzy_match_with_tiebreaker(
+        self,
+        concept: str,
+        available_tags: List[str],
+        aliases: List[str]
+    ) -> List[Tuple[str, float]]:
+        """
+        Find ALL fuzzy matches above threshold (for tie-breaking).
+
+        **NEW Sprint 3 Día 5**: Returns ALL candidates with similarity scores.
+        Caller can then apply business logic (e.g., Balance Sheet validation)
+        to choose the correct match.
+
+        Prevents data corruption from ambiguous matches like:
+        - 'NetIncome' vs 'NetIncomeAvailableToCommonStockholders'
+        - 'Assets' vs 'AssetsCurrentAndNoncurrent'
+
+        Args:
+            concept: Financial concept to find
+            available_tags: List of actual tags in XBRL instance
+            aliases: List of known aliases from taxonomy_map.json
+
+        Returns:
+            List of (tag, similarity_score) tuples, sorted by score DESC
+
+        Example:
+            >>> mapper = FuzzyMapper(similarity_threshold=0.75)
+            >>>
+            >>> # Single match (no ambiguity)
+            >>> tags = ['us-gaap:Revenues', 'us-gaap:Assets']
+            >>> aliases = ['Revenues', 'NetSales']
+            >>> mapper.fuzzy_match_with_tiebreaker('Revenue', tags, aliases)
+            [('us-gaap:Revenues', 1.0)]
+            >>>
+            >>> # Multiple matches (ambiguous - requires tie-breaking)
+            >>> tags = ['us-gaap:NetIncome', 'us-gaap:NetIncomeAvailableToCommonStockholders']
+            >>> aliases = ['NetIncome', 'NetIncomeLoss']
+            >>> mapper.fuzzy_match_with_tiebreaker('NetIncome', tags, aliases)
+            [('us-gaap:NetIncome', 1.0),
+             ('us-gaap:NetIncomeAvailableToCommonStockholders', 0.78)]
+            >>>
+            >>> # No matches
+            >>> tags = ['us-gaap:Assets', 'us-gaap:Liabilities']
+            >>> aliases = ['Revenues', 'NetSales']
+            >>> mapper.fuzzy_match_with_tiebreaker('Revenue', tags, aliases)
+            []
+        """
+        candidates: List[Tuple[str, float]] = []
+
+        for tag in available_tags:
+            # Extract local name (remove namespace prefix)
+            local_name = tag.split(':')[-1] if ':' in tag else tag
+
+            # Find BEST similarity score across all aliases
+            best_ratio = 0.0
+            for alias in aliases:
+                ratio = self._similarity_ratio(local_name, alias)
+                if ratio > best_ratio:
+                    best_ratio = ratio
+
+            # If above threshold, add to candidates
+            if best_ratio >= self.similarity_threshold:
+                candidates.append((tag, best_ratio))
+
+        # Sort by similarity DESC (best matches first)
+        candidates.sort(key=lambda x: x[1], reverse=True)
+
+        return candidates
 
     def find_parent_tag(
         self,
@@ -314,7 +398,7 @@ class FuzzyMapper:
         Normalizes strings (lowercase, remove special chars) before comparison.
 
         Normalization examples:
-        - 'NetSalesOfiPhone' → 'netsaleso fiphone'
+        - 'NetSalesOfiPhone' → 'netsalesof iphone'
         - 'NetSales' → 'netsales'
         - 'Accounts_Receivable-Net' → 'accountsreceivablenet'
 
