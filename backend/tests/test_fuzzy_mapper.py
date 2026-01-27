@@ -31,7 +31,7 @@ class TestFuzzyMapper:
 
         match = self.mapper.fuzzy_match_alias(concept, available_tags, aliases)
 
-        assert match == "us-gaap:Revenues"
+        assert match.value == "us-gaap:Revenues"
 
     def test_fuzzy_match_similar(self):
         """Test fuzzy match with similar string."""
@@ -45,7 +45,7 @@ class TestFuzzyMapper:
         match = mapper.fuzzy_match_alias(concept, available_tags, aliases)
 
         # "NetSalesOfiPhone" matches "NetSales" at 66.6% (>65%)
-        assert match == "aapl:NetSalesOfiPhone"
+        assert match.value == "aapl:NetSalesOfiPhone"
 
     def test_fuzzy_match_below_threshold(self):
         """Test no match when similarity below threshold."""

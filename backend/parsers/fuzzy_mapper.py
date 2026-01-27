@@ -7,16 +7,85 @@ Features:
 - XSD hierarchy navigation (parent tag discovery)
 - Mapping gap tracking for institutional-grade transparency
 - **NEW**: Tie-breaking support for ambiguous matches
+- **NEW Sprint 3 Día 5**: Audit trail with complete metadata
 
 Author: @franklin
-Sprint: 3 Día 4 - Fuzzy Mapping System + Tie-Breaking
+Sprint: 3 Día 5 - Audit Trail Implementation
 """
 
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Any
+from dataclasses import dataclass
 from difflib import SequenceMatcher
+from datetime import datetime
+import time
 import re
 from lxml import etree
 
+
+# ============================================================================
+# AUDIT TRAIL - Sprint 3 Día 5
+# ============================================================================
+
+@dataclass
+class FuzzyMatchResult:
+    """
+    Resultado de fuzzy matching con audit trail completo.
+
+    Attributes:
+        value: Tag XBRL mapeado (ej: 'us-gaap:Revenues')
+        audit: Metadatos de trazabilidad
+
+    Features:
+        - Backward compatible (actúa como string cuando se necesita)
+        - Serializable a JSON
+        - CTO-friendly reporting
+
+    Example:
+        >>> result = FuzzyMatchResult(
+        ...     value='us-gaap:Revenues',
+        ...     audit={
+        ...         'source_concept': 'Revenue',
+        ...         'similarity_score': 0.92,
+        ...         'confidence_tier': 'high'
+        ...     }
+        ... )
+        >>> str(result)
+        'us-gaap:Revenues'
+        >>> result.audit['confidence_tier']
+        'high'
+    """
+    value: str
+    audit: Dict[str, Any]
+
+    def __str__(self) -> str:
+        """Backward compatibility: actúa como string."""
+        return self.value
+
+    def __repr__(self) -> str:
+        """Dev-friendly representation."""
+        return f"FuzzyMatchResult(value='{self.value}', confidence={self.audit.get('confidence_tier', 'unknown')})"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialización a dict (para JSON reports)."""
+        return {
+            'matched_tag': self.value,
+            **self.audit
+        }
+
+    def get_confidence_tier(self) -> str:
+        """Helper para acceder al tier de confianza."""
+        score = self.audit.get('similarity_score', 0.0)
+        if score >= 0.90:
+            return 'high'
+        elif score >= 0.75:
+            return 'medium'
+        else:
+            return 'low'
+
+
+# ============================================================================
+# FUZZY MAPPER - Main Class
+# ============================================================================
 
 class FuzzyMapper:
     """
@@ -30,42 +99,24 @@ class FuzzyMapper:
     2. Parent tag discovery: Navega jerarquía XSD
     3. Mapping gap tracking: Registra fallos para análisis CTO
 
-    **NEW Sprint 3 Día 5**: Tie-breaking support
-    - fuzzy_match_with_tiebreaker() returns ALL candidates
-    - Caller can validate which candidate produces valid Balance Sheet
+    **NEW Sprint 3 Día 5**: Audit trail support
+    - fuzzy_match_alias() returns FuzzyMatchResult with metadata
+    - fuzzy_match_with_tiebreaker() returns List[FuzzyMatchResult]
+    - Complete traceability for institutional-grade transparency
 
     Example:
         >>> mapper = FuzzyMapper(similarity_threshold=0.75)
         >>>
-        >>> # Fuzzy match (single result)
+        >>> # Fuzzy match with audit trail
         >>> tags = ['aapl:NetSalesOfiPhone', 'us-gaap:Assets']
         >>> aliases = ['NetSales', 'SalesRevenue']
-        >>> match = mapper.fuzzy_match_alias('Revenue', tags, aliases)
-        >>> match
+        >>> result = mapper.fuzzy_match_alias('Revenue', tags, aliases)
+        >>> result.value
         'aapl:NetSalesOfiPhone'
-        >>>
-        >>> # Fuzzy match with tie-breaking (multiple candidates)
-        >>> tags = ['us-gaap:NetIncome', 'us-gaap:NetIncomeAvailableToCommonStockholders']
-        >>> aliases = ['NetIncome', 'NetIncomeLoss']
-        >>> candidates = mapper.fuzzy_match_with_tiebreaker('NetIncome', tags, aliases)
-        >>> candidates
-        [('us-gaap:NetIncome', 1.0), ('us-gaap:NetIncomeAvailableToCommonStockholders', 0.78)]
-        >>>
-        >>> # Gap tracking
-        >>> mapper.record_mapping_gap('Goodwill', ['Goodwill'], tags, 'AAPL 2025')
-        >>> report = mapper.get_mapping_gaps_report()
-        >>> print(report)
-        ============================================================
-        MAPPING GAPS REPORT - ACTION REQUIRED
-        ============================================================
-        Total gaps detected: 1
-
-        1. Concept: Goodwill
-           Context: AAPL 2025
-           Attempted aliases: Goodwill
-           Sample tags: aapl:NetSalesOfiPhone, us-gaap:Assets
-           → ACTION: Review and add new alias to taxonomy_map.json
-        ============================================================
+        >>> result.audit['similarity_score']
+        0.85
+        >>> result.audit['confidence_tier']
+        'medium'
     """
 
     def __init__(self, similarity_threshold: float = 0.75):
@@ -91,15 +142,16 @@ class FuzzyMapper:
         concept: str,
         available_tags: List[str],
         aliases: List[str]
-    ) -> Optional[str]:
+    ) -> Optional[FuzzyMatchResult]:
         """
-        Find best fuzzy match for concept using aliases.
+        Find best fuzzy match for concept using aliases WITH AUDIT TRAIL.
 
         Uses SequenceMatcher for fuzzy string comparison.
         Normaliza strings (lowercase, remove special chars) antes de comparar.
 
-        **NOTE**: Returns FIRST match above threshold. For tie-breaking,
-        use fuzzy_match_with_tiebreaker() instead.
+        **CAMBIO Sprint 3 Día 5**: Returns FuzzyMatchResult instead of str
+        - Backward compatible via __str__() method
+        - Includes complete audit metadata
 
         Args:
             concept: Financial concept to find (e.g., "Revenue")
@@ -107,7 +159,7 @@ class FuzzyMapper:
             aliases: List of known aliases from taxonomy_map.json
 
         Returns:
-            Best matching tag or None if no match above threshold
+            FuzzyMatchResult with value + audit trail, or None if no match
 
         Example:
             >>> mapper = FuzzyMapper(similarity_threshold=0.75)
@@ -115,28 +167,22 @@ class FuzzyMapper:
             >>> # Exact match
             >>> tags = ['us-gaap:Revenues', 'us-gaap:Assets']
             >>> aliases = ['Revenues', 'NetSales']
-            >>> mapper.fuzzy_match_alias('Revenue', tags, aliases)
+            >>> result = mapper.fuzzy_match_alias('Revenue', tags, aliases)
+            >>> str(result)  # Backward compatible
             'us-gaap:Revenues'
-            >>>
-            >>> # Fuzzy match (similar but not exact)
-            >>> tags = ['aapl:NetSalesOfiPhone', 'us-gaap:Assets']
-            >>> aliases = ['NetSales', 'SalesRevenue']
-            >>> mapper.fuzzy_match_alias('Revenue', tags, aliases)
-            'aapl:NetSalesOfiPhone'  # 'NetSalesOfiPhone' matches 'NetSales' >75%
-            >>>
-            >>> # No match (below threshold)
-            >>> tags = ['us-gaap:Assets', 'us-gaap:Liabilities']
-            >>> aliases = ['Revenues', 'NetSales']
-            >>> mapper.fuzzy_match_alias('Revenue', tags, aliases)
-            None
+            >>> result.audit['similarity_score']
+            1.0
+            >>> result.audit['confidence_tier']
+            'high'
         """
+        start_time = time.perf_counter()
+
         best_match = None
         best_ratio = 0.0
+        best_alias = None
 
         for tag in available_tags:
             # Extract local name (remove namespace prefix)
-            # 'us-gaap:Revenues' → 'Revenues'
-            # 'aapl:NetSalesOfiPhone' → 'NetSalesOfiPhone'
             local_name = tag.split(':')[-1] if ':' in tag else tag
 
             # Compare against each alias
@@ -146,25 +192,43 @@ class FuzzyMapper:
                 if ratio > best_ratio and ratio >= self.similarity_threshold:
                     best_ratio = ratio
                     best_match = tag
+                    best_alias = alias
 
-        return best_match
+        processing_time = (time.perf_counter() - start_time) * 1000  # ms
+
+        if best_match:
+            # Create result WITH audit trail
+            return FuzzyMatchResult(
+                value=best_match,
+                audit={
+                    'source_concept': concept,
+                    'matched_tag': best_match,
+                    'similarity_score': round(best_ratio, 3),
+                    'confidence_tier': self._get_confidence_tier(best_ratio),
+                    'match_method': 'fuzzy_alias',
+                    'attempted_aliases': aliases,
+                    'best_alias_used': best_alias,
+                    'validation_equation': f"SequenceMatcher({best_match.split(':')[-1]}, {best_alias}) = {best_ratio:.3f}",
+                    'timestamp': datetime.now().isoformat(),
+                    'processing_time_ms': round(processing_time, 2),
+                    'threshold_used': self.similarity_threshold
+                }
+            )
+
+        return None
 
     def fuzzy_match_with_tiebreaker(
         self,
         concept: str,
         available_tags: List[str],
         aliases: List[str]
-    ) -> List[Tuple[str, float]]:
+    ) -> List[FuzzyMatchResult]:
         """
-        Find ALL fuzzy matches above threshold (for tie-breaking).
+        Find ALL fuzzy matches above threshold WITH AUDIT TRAIL (for tie-breaking).
 
-        **NEW Sprint 3 Día 5**: Returns ALL candidates with similarity scores.
-        Caller can then apply business logic (e.g., Balance Sheet validation)
-        to choose the correct match.
-
-        Prevents data corruption from ambiguous matches like:
-        - 'NetIncome' vs 'NetIncomeAvailableToCommonStockholders'
-        - 'Assets' vs 'AssetsCurrentAndNoncurrent'
+        **CAMBIO Sprint 3 Día 5**: Returns List[FuzzyMatchResult] instead of List[Tuple]
+        - Each result includes complete audit metadata
+        - Backward compatible via value attribute
 
         Args:
             concept: Financial concept to find
@@ -172,31 +236,26 @@ class FuzzyMapper:
             aliases: List of known aliases from taxonomy_map.json
 
         Returns:
-            List of (tag, similarity_score) tuples, sorted by score DESC
+            List of FuzzyMatchResult objects, sorted by similarity DESC
 
         Example:
             >>> mapper = FuzzyMapper(similarity_threshold=0.75)
             >>>
-            >>> # Single match (no ambiguity)
-            >>> tags = ['us-gaap:Revenues', 'us-gaap:Assets']
-            >>> aliases = ['Revenues', 'NetSales']
-            >>> mapper.fuzzy_match_with_tiebreaker('Revenue', tags, aliases)
-            [('us-gaap:Revenues', 1.0)]
-            >>>
-            >>> # Multiple matches (ambiguous - requires tie-breaking)
+            >>> # Multiple matches with audit trail
             >>> tags = ['us-gaap:NetIncome', 'us-gaap:NetIncomeAvailableToCommonStockholders']
             >>> aliases = ['NetIncome', 'NetIncomeLoss']
-            >>> mapper.fuzzy_match_with_tiebreaker('NetIncome', tags, aliases)
-            [('us-gaap:NetIncome', 1.0),
-             ('us-gaap:NetIncomeAvailableToCommonStockholders', 0.78)]
-            >>>
-            >>> # No matches
-            >>> tags = ['us-gaap:Assets', 'us-gaap:Liabilities']
-            >>> aliases = ['Revenues', 'NetSales']
-            >>> mapper.fuzzy_match_with_tiebreaker('Revenue', tags, aliases)
-            []
+            >>> results = mapper.fuzzy_match_with_tiebreaker('NetIncome', tags, aliases)
+            >>> len(results)
+            2
+            >>> results[0].value
+            'us-gaap:NetIncome'
+            >>> results[0].audit['similarity_score']
+            1.0
+            >>> results[0].audit['candidate_rank']
+            1
         """
-        candidates: List[Tuple[str, float]] = []
+        start_time = time.perf_counter()
+        candidates: List[FuzzyMatchResult] = []
 
         for tag in available_tags:
             # Extract local name (remove namespace prefix)
@@ -204,17 +263,43 @@ class FuzzyMapper:
 
             # Find BEST similarity score across all aliases
             best_ratio = 0.0
+            best_alias = None
+
             for alias in aliases:
                 ratio = self._similarity_ratio(local_name, alias)
                 if ratio > best_ratio:
                     best_ratio = ratio
+                    best_alias = alias
 
-            # If above threshold, add to candidates
+            # If above threshold, add to candidates WITH audit trail
             if best_ratio >= self.similarity_threshold:
-                candidates.append((tag, best_ratio))
+                processing_time = (time.perf_counter() - start_time) * 1000
+
+                result = FuzzyMatchResult(
+                    value=tag,
+                    audit={
+                        'source_concept': concept,
+                        'matched_tag': tag,
+                        'similarity_score': round(best_ratio, 3),
+                        'confidence_tier': self._get_confidence_tier(best_ratio),
+                        'match_method': 'fuzzy_tiebreaker',
+                        'attempted_aliases': aliases,
+                        'best_alias_used': best_alias,
+                        'validation_equation': f"SequenceMatcher({local_name}, {best_alias}) = {best_ratio:.3f}",
+                        'timestamp': datetime.now().isoformat(),
+                        'processing_time_ms': round(processing_time, 2),
+                        'threshold_used': self.similarity_threshold,
+                        'candidate_rank': len(candidates) + 1  # Temporary rank
+                    }
+                )
+                candidates.append(result)
 
         # Sort by similarity DESC (best matches first)
-        candidates.sort(key=lambda x: x[1], reverse=True)
+        candidates.sort(key=lambda x: x.audit['similarity_score'], reverse=True)
+
+        # Update ranks after sorting
+        for idx, candidate in enumerate(candidates, 1):
+            candidate.audit['candidate_rank'] = idx
 
         return candidates
 
@@ -389,6 +474,27 @@ class FuzzyMapper:
         report.append("\n" + "=" * 70)
 
         return "\n".join(report)
+
+    # ========================================================================
+    # PRIVATE HELPER METHODS
+    # ========================================================================
+
+    def _get_confidence_tier(self, score: float) -> str:
+        """
+        Determina tier de confianza basado en similarity score.
+
+        Args:
+            score: Similarity ratio (0.0-1.0)
+
+        Returns:
+            'high' (>= 0.90), 'medium' (0.75-0.89), or 'low' (< 0.75)
+        """
+        if score >= 0.90:
+            return 'high'
+        elif score >= 0.75:
+            return 'medium'
+        else:
+            return 'low'
 
     def _similarity_ratio(self, str1: str, str2: str) -> float:
         """
