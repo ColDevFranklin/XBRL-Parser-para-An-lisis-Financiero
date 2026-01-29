@@ -1,0 +1,115 @@
+{
+  "downloaded_at": "2026-01-29T16:42:27.560339",
+  "years": 4,
+  "companies": 20,
+  "files": {
+    "AAPL": {
+      "2025": "data/aapl_10k_2025_xbrl.xml",
+      "2024": "data/aapl_10k_2024_xbrl.xml",
+      "2023": "data/aapl_10k_2023_xbrl.xml"
+    },
+    "MSFT": {
+      "2026": "data/msft_10k_xbrl.xml",
+      "2025": "data/msft_10k_2025_xbrl.xml",
+      "2024": "data/msft_10k_2024_xbrl.xml",
+      "2023": "data/msft_10k_2023_xbrl.xml"
+    },
+    "NVDA": {
+      "2025": "data/nvda_10k_2025_xbrl.xml",
+      "2024": "data/nvda_10k_2024_xbrl.xml",
+      "2023": "data/nvda_10k_2023_xbrl.xml"
+    },
+    "AVGO": {
+      "2025": "data/avgo_10k_2025_xbrl.xml",
+      "2024": "data/avgo_10k_2024_xbrl.xml",
+      "2023": "data/avgo_10k_2023_xbrl.xml"
+    },
+    "ORCL": {
+      "2025": "data/orcl_10k_2025_xbrl.xml",
+      "2024": "data/orcl_10k_2024_xbrl.xml",
+      "2023": "data/orcl_10k_2023_xbrl.xml"
+    },
+    "CRM": {
+      "2025": "data/crm_10k_2025_xbrl.xml",
+      "2024": "data/crm_10k_2024_xbrl.xml",
+      "2023": "data/crm_10k_2023_xbrl.xml"
+    },
+    "ADBE": {
+      "2026": "data/adbe_10k_2026_xbrl.xml",
+      "2025": "data/adbe_10k_2025_xbrl.xml",
+      "2024": "data/adbe_10k_2024_xbrl.xml",
+      "2023": "data/adbe_10k_2023_xbrl.xml"
+    },
+    "CSCO": {
+      "2025": "data/csco_10k_2025_xbrl.xml",
+      "2024": "data/csco_10k_2024_xbrl.xml",
+      "2023": "data/csco_10k_2023_xbrl.xml"
+    },
+    "ACN": {
+      "2025": "data/acn_10k_2025_xbrl.xml",
+      "2024": "data/acn_10k_2024_xbrl.xml",
+      "2023": "data/acn_10k_2023_xbrl.xml"
+    },
+    "AMD": {
+      "2025": "data/amd_10k_2025_xbrl.xml",
+      "2024": "data/amd_10k_2024_xbrl.xml",
+      "2023": "data/amd_10k_2023_xbrl.xml"
+    },
+    "NOW": {
+      "2026": "data/now_10k_2026_xbrl.xml",
+      "2025": "data/now_10k_2025_xbrl.xml",
+      "2024": "data/now_10k_2024_xbrl.xml",
+      "2023": "data/now_10k_2023_xbrl.xml"
+    },
+    "TXN": {
+      "2025": "data/txn_10k_2025_xbrl.xml",
+      "2024": "data/txn_10k_2024_xbrl.xml",
+      "2023": "data/txn_10k_2023_xbrl.xml"
+    },
+    "IBM": {
+      "2025": "data/ibm_10k_2025_xbrl.xml",
+      "2024": "data/ibm_10k_2024_xbrl.xml",
+      "2023": "data/ibm_10k_2023_xbrl.xml"
+    },
+    "QCOM": {
+      "2025": "data/qcom_10k_2025_xbrl.xml",
+      "2024": "data/qcom_10k_2024_xbrl.xml",
+      "2023": "data/qcom_10k_2023_xbrl.xml"
+    },
+    "INTU": {
+      "2025": "data/intu_10k_2025_xbrl.xml",
+      "2024": "data/intu_10k_2024_xbrl.xml",
+      "2023": "data/intu_10k_2023_xbrl.xml"
+    },
+    "AMAT": {
+      "2025": "data/amat_10k_2025_xbrl.xml",
+      "2024": "data/amat_10k_2024_xbrl.xml",
+      "2023": "data/amat_10k_2023_xbrl.xml"
+    },
+    "PANW": {
+      "2025": "data/panw_10k_2025_xbrl.xml",
+      "2024": "data/panw_10k_2024_xbrl.xml",
+      "2023": "data/panw_10k_2023_xbrl.xml"
+    },
+    "MU": {
+      "2025": "data/mu_10k_2025_xbrl.xml",
+      "2024": "data/mu_10k_2024_xbrl.xml",
+      "2023": "data/mu_10k_2023_xbrl.xml"
+    },
+    "ADI": {
+      "2025": "data/adi_10k_2025_xbrl.xml",
+      "2024": "data/adi_10k_2024_xbrl.xml",
+      "2023": "data/adi_10k_2023_xbrl.xml"
+    },
+    "LRCX": {
+      "2025": "data/lrcx_10k_2025_xbrl.xml",
+      "2024": "data/lrcx_10k_2024_xbrl.xml",
+      "2023": "data/lrcx_10k_2023_xbrl.xml"
+    }
+  },
+  "stats": {
+    "success": 62,
+    "failed": 18,
+    "skipped": 13
+  }
+}

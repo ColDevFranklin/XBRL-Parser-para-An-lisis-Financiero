@@ -12,8 +12,13 @@ Cambios Sprint 3 Día 4:
 - Soporte para nuevos campos: Dividends, StockComp, WorkingCapital
 - **NUEVO**: Consolidación de mapping gaps entre múltiples años
 
+Sprint 5 - Micro-Tarea 3:
+- AUTO-DISCOVERY: Detecta automáticamente archivos XBRL de cualquier ticker
+- MULTI-PATTERN: Soporta múltiples naming conventions
+- FLEXIBLE: No requiere hardcoded patterns por ticker
+
 Author: @franklin
-Sprint: 3 Día 4 - Micro-Tarea 3 (Cash Flow 5) - COMPLETADO
+Sprint: 5 - Micro-Tarea 3 (Benchmark Calculator) - AUTO-DISCOVERY
 """
 
 import sys
@@ -35,16 +40,16 @@ class MultiFileXBRLParser:
     Detecta automáticamente archivos XBRL en un directorio y extrae
     datos financieros de múltiples años fiscales.
 
-    SPRINT 3 DÍA 4 - INVENTARIO COMPLETO:
-    - Balance Sheet: 18 conceptos ✅
-    - Income Statement: 13 conceptos ✅
-    - Cash Flow: 5 conceptos ✅
-    - TOTAL: 33/33 conceptos (100%)
-    - Fuzzy mapping en cada parser individual
-    - Consolidación de mapping gaps
+    SPRINT 5 - AUTO-DISCOVERY:
+    - Detecta automáticamente archivos XBRL de cualquier ticker
+    - Soporta múltiples naming conventions:
+      1. {TICKER}_{YEAR}_10K.xml (nuevo - downloader)
+      2. {ticker}_10k_{year}_xbrl.xml (legacy - Apple)
+      3. {ticker}_10k_xbrl.xml (sin año - más reciente)
+    - No requiere configuración por ticker
 
     Usage:
-        parser = MultiFileXBRLParser(ticker='AAPL')
+        parser = MultiFileXBRLParser(ticker='AAPL', data_dir='data')
         timeseries = parser.extract_timeseries(years=4)
 
         # Output:
@@ -52,31 +57,17 @@ class MultiFileXBRLParser:
         #   2025: {
         #       'Assets': SourceTrace(...),
         #       'Revenue': SourceTrace(...),
-        #       'ResearchAndDevelopment': SourceTrace(...),
-        #       'DividendsPaid': SourceTrace(...),  # NUEVO
-        #       'StockBasedCompensation': SourceTrace(...),  # NUEVO
+        #       'DividendsPaid': SourceTrace(...),
         #       ...
         #   },
         #   2024: {...},
         # }
-
-        # Mapping gaps consolidado
-        gaps_report = parser.get_consolidated_mapping_gaps()
-        print(gaps_report)
     """
-
-    # Patrones de nombres de archivo por ticker
-    FILE_PATTERNS = {
-        'AAPL': {
-            'pattern': r'apple_10k(?:_(\d{4}))?_xbrl\.xml',
-            'default_year': 2025  # Archivo sin año es 2025
-        }
-    }
 
     def __init__(self, ticker: str = 'AAPL', data_dir: str = 'data'):
         """
         Args:
-            ticker: Símbolo bursátil (default: AAPL)
+            ticker: Símbolo bursátil (e.g., 'AAPL', 'MSFT', 'NVDA')
             data_dir: Directorio con archivos XBRL
         """
         self.ticker = ticker.upper()
@@ -88,7 +79,7 @@ class MultiFileXBRLParser:
         if not self.data_dir.exists():
             raise ValueError(f"Directorio no existe: {data_dir}")
 
-        # Descubrir archivos disponibles
+        # Descubrir archivos disponibles (AUTO-DISCOVERY)
         self.files = self._discover_files()
 
         if not self.files:
@@ -103,32 +94,63 @@ class MultiFileXBRLParser:
 
     def _discover_files(self) -> Dict[int, Path]:
         """
-        Detecta archivos XBRL disponibles en el directorio.
+        AUTO-DISCOVERY: Detecta archivos XBRL automáticamente.
+
+        Soporta múltiples naming conventions:
+        1. {TICKER}/{TICKER}_{YEAR}_10K.xml  (downloader - subdirectory)
+        2. {TICKER}_{YEAR}_10K.xml           (downloader - flat)
+        3. {ticker}_10k_{year}_xbrl.xml      (legacy Apple format)
+        4. {ticker}_10k_xbrl.xml             (sin año - most recent)
 
         Returns:
             Dict mapeando año fiscal → filepath
         """
-        if self.ticker not in self.FILE_PATTERNS:
-            raise ValueError(f"Ticker {self.ticker} no soportado")
-
-        config = self.FILE_PATTERNS[self.ticker]
-        pattern = re.compile(config['pattern'])
-
         files_by_year = {}
+        ticker_lower = self.ticker.lower()
+        ticker_upper = self.ticker.upper()
 
-        # Buscar archivos que coincidan con el patrón
+        # Pattern 1: {TICKER}/{TICKER}_{YEAR}_10K.xml (subdirectory)
+        ticker_subdir = self.data_dir / ticker_upper
+        if ticker_subdir.exists():
+            pattern1 = re.compile(rf'{ticker_upper}_(\d{{4}})_10K\.xml', re.IGNORECASE)
+            for filepath in ticker_subdir.glob('*.xml'):
+                match = pattern1.match(filepath.name)
+                if match:
+                    year = int(match.group(1))
+                    files_by_year[year] = filepath
+
+        # Pattern 2: {TICKER}_{YEAR}_10K.xml (flat directory)
+        pattern2 = re.compile(rf'{ticker_upper}_(\d{{4}})_10K\.xml', re.IGNORECASE)
         for filepath in self.data_dir.glob('*.xml'):
-            match = pattern.match(filepath.name)
-
+            match = pattern2.match(filepath.name)
             if match:
-                year_str = match.group(1)  # Grupo de captura para año
+                year = int(match.group(1))
+                if year not in files_by_year:  # Don't override subdirectory files
+                    files_by_year[year] = filepath
 
-                if year_str:
-                    year = int(year_str)
-                else:
-                    year = config['default_year']
+        # Pattern 3: {ticker}_10k_{year}_xbrl.xml (legacy Apple format)
+        pattern3 = re.compile(rf'{ticker_lower}_10k_(\d{{4}})_xbrl\.xml', re.IGNORECASE)
+        for filepath in self.data_dir.glob('*.xml'):
+            match = pattern3.match(filepath.name)
+            if match:
+                year = int(match.group(1))
+                if year not in files_by_year:
+                    files_by_year[year] = filepath
 
-                files_by_year[year] = filepath
+        # Pattern 4: {ticker}_10k_xbrl.xml (sin año - assume most recent)
+        pattern4 = re.compile(rf'{ticker_lower}_10k_xbrl\.xml', re.IGNORECASE)
+        for filepath in self.data_dir.glob('*.xml'):
+            match = pattern4.match(filepath.name)
+            if match:
+                # Assign to most recent year not already taken
+                from datetime import datetime
+                current_year = datetime.now().year
+
+                # Try current year and previous years
+                for year in range(current_year, current_year - 5, -1):
+                    if year not in files_by_year:
+                        files_by_year[year] = filepath
+                        break
 
         return files_by_year
 
