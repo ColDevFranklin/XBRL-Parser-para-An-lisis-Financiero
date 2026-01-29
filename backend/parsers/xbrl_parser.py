@@ -271,9 +271,12 @@ class XBRLParser:
                 aliases=aliases
             )
 
+            # DESPUÉS (CORRECTO):
             if fuzzy_tag:
-                # Extraer local name (sin namespace)
-                local_name = fuzzy_tag.split(':')[-1] if ':' in fuzzy_tag else fuzzy_tag
+                    # Extraer local name (sin namespace)
+                    # fuzzy_tag ahora es FuzzyMatchResult, necesitamos .value
+                tag_value = fuzzy_tag.value if hasattr(fuzzy_tag, 'value') else str(fuzzy_tag)
+                local_name = tag_value.split(':')[-1] if ':' in tag_value else tag_value
 
                 value = self._search_tag_in_context(local_name, target_context, section)
 

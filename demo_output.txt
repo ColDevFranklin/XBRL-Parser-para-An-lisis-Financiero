@@ -1,0 +1,594 @@
+✓ MultiFileXBRLParser inicializado
+  Ticker: AAPL
+  Archivos encontrados: 4
+  Años disponibles: [2025, 2024, 2023, 2022]
+
+============================================================
+EXTRACCIÓN TIME-SERIES - INVENTARIO COMPLETO
+============================================================
+Ticker: AAPL
+Años solicitados: 4
+Años disponibles: 4
+Años a extraer: [2025, 2024, 2023, 2022]
+Conceptos por año: 33 (18 BS + 13 IS + 5 CF)
+
+📄 Procesando 2025:
+   Archivo: apple_10k_xbrl.xml
+✓ Taxonomy map loaded: 40 concepts
+✓ Archivo cargado: data/apple_10k_xbrl.xml
+  Namespaces encontrados: 13
+  Año fiscal: 2025
+  Fiscal year-end: 2025-10-17
+  TaxonomyResolver: 40 concepts
+  FuzzyMapper: threshold=0.75
+  XSD Schema: not available (parent discovery disabled)
+
+--- 📊 BALANCE SHEET ---
+  → Usando contexto: c-20
+    (Fecha: 2025-10-17)
+  Assets: $359,241,000,000
+  Liabilities: $285,508,000,000
+  Equity: $73,733,000,000
+  CurrentAssets: $147,957,000,000
+  CashAndEquivalents: $35,934,000,000
+  LongTermDebt: $90,678,000,000
+  CurrentLiabilities: $165,631,000,000
+  Inventory: $5,718,000,000
+  AccountsReceivable: $39,777,000,000
+  ShortTermDebt: $147,957,000,000
+  PropertyPlantEquipment: $49,834,000,000
+  AccumulatedDepreciation: $76,014,000,000
+  Goodwill: No encontrado
+  IntangibleAssets: No encontrado
+  RetainedEarnings: No encontrado
+  TreasuryStock: No encontrado
+  OtherCurrentAssets: $14,585,000,000
+  OperatingLeaseLiability: $12,490,000,000
+
+✓ Validación:
+  Assets: $359,241,000,000
+  Liabilities + Equity: $359,241,000,000
+  Diferencia: 0.00%
+  ✓ Balance cuadra
+
+--- 💰 INCOME STATEMENT ---
+  → Usando contexto: c-1
+  Revenue: $416,161,000,000
+  CostOfRevenue: $220,960,000,000
+  GrossProfit: $195,201,000,000
+  OperatingIncome: $133,050,000,000
+  NetIncome: $112,010,000,000
+  InterestExpense: No encontrado
+  ResearchAndDevelopment: $34,550,000,000
+  SellingGeneralAdmin: $27,601,000,000
+  TaxExpense: $20,719,000,000
+  DepreciationAmortization: $11,698,000,000
+  NonOperatingIncome: No encontrado
+  AssetImpairment: No encontrado
+  RestructuringCharges: No encontrado
+
+--- 💵 CASH FLOW Statement ---
+  → Usando contexto: c-1
+  OperatingCashFlow: $111,482,000,000
+  CapitalExpenditures: $12,715,000,000
+  DividendsPaid: $15,421,000,000
+  StockBasedCompensation: $12,863,000,000
+  ChangeInWorkingCapital: No encontrado
+   ✓ 27 campos extraídos
+   - Assets: $359,241,000,000
+   - Revenue: $416,161,000,000
+   - NetIncome: $112,010,000,000
+   - OperatingCashFlow: $111,482,000,000
+   - Nuevos CF: DividendsPaid, StockBasedCompensation
+
+📄 Procesando 2024:
+   Archivo: apple_10k_2024_xbrl.xml
+✓ Taxonomy map loaded: 40 concepts
+✓ Archivo cargado: data/apple_10k_2024_xbrl.xml
+  Namespaces encontrados: 12
+  Año fiscal: 2024
+  Fiscal year-end: 2024-10-18
+  TaxonomyResolver: 40 concepts
+  FuzzyMapper: threshold=0.75
+  XSD Schema: not available (parent discovery disabled)
+
+--- 📊 BALANCE SHEET ---
+  → Usando contexto: c-21
+    (Fecha: 2024-10-18)
+  Assets: $364,980,000,000
+  Liabilities: $308,030,000,000
+  Equity: $56,950,000,000
+  CurrentAssets: $152,987,000,000
+  CashAndEquivalents: $29,943,000,000
+  LongTermDebt: $96,662,000,000
+  CurrentLiabilities: $176,392,000,000
+  Inventory: $7,286,000,000
+  AccountsReceivable: $33,410,000,000
+  ShortTermDebt: $152,987,000,000
+  PropertyPlantEquipment: $45,680,000,000
+  AccumulatedDepreciation: $73,448,000,000
+  Goodwill: No encontrado
+  IntangibleAssets: No encontrado
+  RetainedEarnings: No encontrado
+  TreasuryStock: No encontrado
+  OtherCurrentAssets: $14,287,000,000
+  OperatingLeaseLiability: $11,534,000,000
+
+✓ Validación:
+  Assets: $364,980,000,000
+  Liabilities + Equity: $364,980,000,000
+  Diferencia: 0.00%
+  ✓ Balance cuadra
+
+--- 💰 INCOME STATEMENT ---
+  → Usando contexto: c-1
+  Revenue: $391,035,000,000
+  CostOfRevenue: $210,352,000,000
+  GrossProfit: $180,683,000,000
+  OperatingIncome: $123,216,000,000
+  NetIncome: $93,736,000,000
+  InterestExpense: No encontrado
+  ResearchAndDevelopment: $31,370,000,000
+  SellingGeneralAdmin: $26,097,000,000
+  TaxExpense: $29,749,000,000
+  DepreciationAmortization: $11,445,000,000
+  NonOperatingIncome: $269,000,000
+  AssetImpairment: No encontrado
+  RestructuringCharges: No encontrado
+
+--- 💵 CASH FLOW Statement ---
+  → Usando contexto: c-1
+  OperatingCashFlow: $118,254,000,000
+  CapitalExpenditures: $9,447,000,000
+  DividendsPaid: $15,234,000,000
+  StockBasedCompensation: $11,688,000,000
+  ChangeInWorkingCapital: No encontrado
+   ✓ 28 campos extraídos
+   - Assets: $364,980,000,000
+   - Revenue: $391,035,000,000
+   - NetIncome: $93,736,000,000
+   - OperatingCashFlow: $118,254,000,000
+   - Nuevos CF: DividendsPaid, StockBasedCompensation
+
+📄 Procesando 2023:
+   Archivo: apple_10k_2023_xbrl.xml
+✓ Taxonomy map loaded: 40 concepts
+✓ Archivo cargado: data/apple_10k_2023_xbrl.xml
+  Namespaces encontrados: 12
+  Año fiscal: 2023
+  Fiscal year-end: 2023-09-30
+  TaxonomyResolver: 40 concepts
+  FuzzyMapper: threshold=0.75
+  XSD Schema: not available (parent discovery disabled)
+
+--- 📊 BALANCE SHEET ---
+  → Usando contexto: c-22
+    (Fecha: 2023-09-30)
+  Assets: $352,583,000,000
+  Liabilities: $290,437,000,000
+  Equity: $62,146,000,000
+  CurrentAssets: $143,566,000,000
+  CashAndEquivalents: $29,965,000,000
+  LongTermDebt: $105,103,000,000
+  CurrentLiabilities: $145,308,000,000
+  Inventory: $6,331,000,000
+  AccountsReceivable: $29,508,000,000
+  ShortTermDebt: $143,566,000,000
+  PropertyPlantEquipment: $43,715,000,000
+  AccumulatedDepreciation: $70,884,000,000
+  Goodwill: No encontrado
+  IntangibleAssets: No encontrado
+  RetainedEarnings: No encontrado
+  TreasuryStock: No encontrado
+  OtherCurrentAssets: $14,695,000,000
+  OperatingLeaseLiability: $11,818,000,000
+
+✓ Validación:
+  Assets: $352,583,000,000
+  Liabilities + Equity: $352,583,000,000
+  Diferencia: 0.00%
+  ✓ Balance cuadra
+
+--- 💰 INCOME STATEMENT ---
+  → Usando contexto: c-1
+  Revenue: $383,285,000,000
+  CostOfRevenue: $214,137,000,000
+  GrossProfit: $169,148,000,000
+  OperatingIncome: $114,301,000,000
+  NetIncome: $96,995,000,000
+  InterestExpense: $3,933,000,000
+  ResearchAndDevelopment: $29,915,000,000
+  SellingGeneralAdmin: $24,932,000,000
+  TaxExpense: $16,741,000,000
+  DepreciationAmortization: $11,519,000,000
+  NonOperatingIncome: No encontrado
+  AssetImpairment: No encontrado
+  RestructuringCharges: No encontrado
+
+--- 💵 CASH FLOW Statement ---
+  → Usando contexto: c-1
+  OperatingCashFlow: $110,543,000,000
+  CapitalExpenditures: $10,959,000,000
+  DividendsPaid: $15,025,000,000
+  StockBasedCompensation: $10,833,000,000
+  ChangeInWorkingCapital: No encontrado
+   ✓ 28 campos extraídos
+   - Assets: $352,583,000,000
+   - Revenue: $383,285,000,000
+   - NetIncome: $96,995,000,000
+   - OperatingCashFlow: $110,543,000,000
+   - Nuevos CF: DividendsPaid, StockBasedCompensation
+
+📄 Procesando 2022:
+   Archivo: apple_10k_2022_xbrl.xml
+✓ Taxonomy map loaded: 40 concepts
+✓ Archivo cargado: data/apple_10k_2022_xbrl.xml
+  Namespaces encontrados: 11
+  Año fiscal: 2022
+  Fiscal year-end: 2022-10-14
+  TaxonomyResolver: 40 concepts
+  FuzzyMapper: threshold=0.75
+  XSD Schema: not available (parent discovery disabled)
+
+--- 📊 BALANCE SHEET ---
+  → Usando contexto: if3ba800b42a9406abf364f6d45d67e23_I20220924
+    (Fecha: 2022-10-14)
+  Assets: $352,755,000,000
+  Liabilities: $302,083,000,000
+  Equity: $50,672,000,000
+  CurrentAssets: $135,405,000,000
+  CashAndEquivalents: $23,646,000,000
+  LongTermDebt: $98,959,000,000
+  CurrentLiabilities: $153,982,000,000
+  Inventory: $4,946,000,000
+  AccountsReceivable: $28,184,000,000
+  ShortTermDebt: $135,405,000,000
+  PropertyPlantEquipment: $42,117,000,000
+  AccumulatedDepreciation: $72,340,000,000
+  Goodwill: No encontrado
+  IntangibleAssets: No encontrado
+  RetainedEarnings: No encontrado
+  TreasuryStock: No encontrado
+  OtherCurrentAssets: $21,223,000,000
+  OperatingLeaseLiability: $11,470,000,000
+
+✓ Validación:
+  Assets: $352,755,000,000
+  Liabilities + Equity: $352,755,000,000
+  Diferencia: 0.00%
+  ✓ Balance cuadra
+
+--- 💰 INCOME STATEMENT ---
+  → Usando contexto: i4a4fb50fc2db4070adb20304175890ef_D20210926-20220924
+  Revenue: $394,328,000,000
+  CostOfRevenue: $223,546,000,000
+  GrossProfit: $170,782,000,000
+  OperatingIncome: $119,437,000,000
+  NetIncome: $99,803,000,000
+  InterestExpense: $2,931,000,000
+  ResearchAndDevelopment: $26,251,000,000
+  SellingGeneralAdmin: $25,094,000,000
+  TaxExpense: $19,300,000,000
+  DepreciationAmortization: $11,104,000,000
+  NonOperatingIncome: No encontrado
+  AssetImpairment: No encontrado
+  RestructuringCharges: No encontrado
+
+--- 💵 CASH FLOW Statement ---
+  → Usando contexto: i4a4fb50fc2db4070adb20304175890ef_D20210926-20220924
+  OperatingCashFlow: $122,151,000,000
+  CapitalExpenditures: $10,708,000,000
+  DividendsPaid: $14,841,000,000
+  StockBasedCompensation: $9,038,000,000
+  ChangeInWorkingCapital: No encontrado
+   ✓ 28 campos extraídos
+   - Assets: $352,755,000,000
+   - Revenue: $394,328,000,000
+   - NetIncome: $99,803,000,000
+   - OperatingCashFlow: $122,151,000,000
+   - Nuevos CF: DividendsPaid, StockBasedCompensation
+
+============================================================
+✅ TIME-SERIES EXTRACTION COMPLETADO
+============================================================
+Años extraídos: 4/4
+Años con datos: [2025, 2024, 2023, 2022]
+
+============================================================
+VALIDACIÓN BALANCE SHEET
+============================================================
+2025: ✓ Diferencia: 0.0000%
+2024: ✓ Diferencia: 0.0000%
+2023: ✓ Diferencia: 0.0000%
+2022: ✓ Diferencia: 0.0000%
+
+============================================================
+✅ TODOS LOS BALANCE SHEETS VÁLIDOS
+============================================================
+
+======================================================================
+MAPPING GAPS ANALYSIS - CONSOLIDATED
+======================================================================
+
+📅 2025:
+======================================================================
+MAPPING GAPS REPORT - ACTION REQUIRED
+======================================================================
+
+Total gaps detected: 9
+
+
+1. Concept: Goodwill
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: 
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+2. Concept: IntangibleAssets
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: FiniteLivedIntangibleAssetsNet, IntangibleAssetsNet
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+3. Concept: RetainedEarnings
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: RetainedEarnings
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+4. Concept: TreasuryStock
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: TreasuryStockCommonValue
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+5. Concept: InterestExpense
+   Context: 0000320193 - income_statement
+   Attempted aliases: InterestExpenseDebt
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+6. Concept: NonOperatingIncome
+   Context: 0000320193 - income_statement
+   Attempted aliases: OtherNonoperatingIncomeExpense, InvestmentIncomeNonoperating
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+7. Concept: AssetImpairment
+   Context: 0000320193 - income_statement
+   Attempted aliases: GoodwillImpairmentLoss, ImpairmentOfIntangibleAssetsExcludingGoodwill
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+8. Concept: RestructuringCharges
+   Context: 0000320193 - income_statement
+   Attempted aliases: RestructuringCostsAndAssetImpairmentCharges, SeveranceCosts1
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+9. Concept: ChangeInWorkingCapital
+   Context: 0000320193 - cash_flow
+   Attempted aliases: IncreaseDecreaseInWorkingCapital, ChangeInWorkingCapitalExcludingCashAndCashEquivalents
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+======================================================================
+
+📅 2024:
+======================================================================
+MAPPING GAPS REPORT - ACTION REQUIRED
+======================================================================
+
+Total gaps detected: 8
+
+
+1. Concept: Goodwill
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: 
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+2. Concept: IntangibleAssets
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: FiniteLivedIntangibleAssetsNet, IntangibleAssetsNet
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+3. Concept: RetainedEarnings
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: RetainedEarnings
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+4. Concept: TreasuryStock
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: TreasuryStockCommonValue
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+5. Concept: InterestExpense
+   Context: 0000320193 - income_statement
+   Attempted aliases: InterestExpenseDebt
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+6. Concept: AssetImpairment
+   Context: 0000320193 - income_statement
+   Attempted aliases: GoodwillImpairmentLoss, ImpairmentOfIntangibleAssetsExcludingGoodwill
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+7. Concept: RestructuringCharges
+   Context: 0000320193 - income_statement
+   Attempted aliases: RestructuringCostsAndAssetImpairmentCharges, SeveranceCosts1
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+8. Concept: ChangeInWorkingCapital
+   Context: 0000320193 - cash_flow
+   Attempted aliases: IncreaseDecreaseInWorkingCapital, ChangeInWorkingCapitalExcludingCashAndCashEquivalents
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+======================================================================
+
+📅 2023:
+======================================================================
+MAPPING GAPS REPORT - ACTION REQUIRED
+======================================================================
+
+Total gaps detected: 8
+
+
+1. Concept: Goodwill
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: 
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+2. Concept: IntangibleAssets
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: FiniteLivedIntangibleAssetsNet, IntangibleAssetsNet
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+3. Concept: RetainedEarnings
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: RetainedEarnings
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+4. Concept: TreasuryStock
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: TreasuryStockCommonValue
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+5. Concept: NonOperatingIncome
+   Context: 0000320193 - income_statement
+   Attempted aliases: OtherNonoperatingIncomeExpense, InvestmentIncomeNonoperating
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+6. Concept: AssetImpairment
+   Context: 0000320193 - income_statement
+   Attempted aliases: GoodwillImpairmentLoss, ImpairmentOfIntangibleAssetsExcludingGoodwill
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+7. Concept: RestructuringCharges
+   Context: 0000320193 - income_statement
+   Attempted aliases: RestructuringCostsAndAssetImpairmentCharges, SeveranceCosts1
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+8. Concept: ChangeInWorkingCapital
+   Context: 0000320193 - cash_flow
+   Attempted aliases: IncreaseDecreaseInWorkingCapital, ChangeInWorkingCapitalExcludingCashAndCashEquivalents
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+======================================================================
+
+📅 2022:
+======================================================================
+MAPPING GAPS REPORT - ACTION REQUIRED
+======================================================================
+
+Total gaps detected: 8
+
+
+1. Concept: Goodwill
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: 
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+2. Concept: IntangibleAssets
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: FiniteLivedIntangibleAssetsNet, IntangibleAssetsNet
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+3. Concept: RetainedEarnings
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: RetainedEarnings
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+4. Concept: TreasuryStock
+   Context: 0000320193 - balance_sheet
+   Attempted aliases: TreasuryStockCommonValue
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+5. Concept: NonOperatingIncome
+   Context: 0000320193 - income_statement
+   Attempted aliases: OtherNonoperatingIncomeExpense, InvestmentIncomeNonoperating
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+6. Concept: AssetImpairment
+   Context: 0000320193 - income_statement
+   Attempted aliases: GoodwillImpairmentLoss, ImpairmentOfIntangibleAssetsExcludingGoodwill
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+7. Concept: RestructuringCharges
+   Context: 0000320193 - income_statement
+   Attempted aliases: RestructuringCostsAndAssetImpairmentCharges, SeveranceCosts1
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+8. Concept: ChangeInWorkingCapital
+   Context: 0000320193 - cash_flow
+   Attempted aliases: IncreaseDecreaseInWorkingCapital, ChangeInWorkingCapitalExcludingCashAndCashEquivalents
+   Sample tags available: us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate, us-gaap:LongTermDebtCurrent, us-gaap:DeferredTaxAssetsGross, us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths, us-gaap:OtherAssetsCurrent
+   → ACTION: Review and add new alias to taxonomy_map.json
+
+======================================================================
+
+⚠️  ACTION REQUIRED: Review gaps and update taxonomy_map.json
+======================================================================
+
+============================================================
+📊 RESUMEN FINAL - INVENTARIO COMPLETO
+============================================================
+
+Años procesados: 4
+  ✓ 2025: 27 campos
+     Revenue: $416.2B
+     R&D: $34.5B
+     Dividends: $15.4B (NUEVO)
+     Stock Comp: $12.9B (NUEVO)
+  ✓ 2024: 28 campos
+     Revenue: $391.0B
+     R&D: $31.4B
+     Dividends: $15.2B (NUEVO)
+     Stock Comp: $11.7B (NUEVO)
+  ✓ 2023: 28 campos
+     Revenue: $383.3B
+     R&D: $29.9B
+     Dividends: $15.0B (NUEVO)
+     Stock Comp: $10.8B (NUEVO)
+  ✓ 2022: 28 campos
+     Revenue: $394.3B
+     R&D: $26.3B
+     Dividends: $14.8B (NUEVO)
+     Stock Comp: $9.0B (NUEVO)
+
+⏱️  Tiempo total: 2.63s
+   Promedio por año: 0.66s
+
+============================================================
+VALIDACIÓN MICRO-TAREA 3 - INVENTARIO COMPLETO
+============================================================
+  ✓ Time-series 4 años
+  ✓ Balance sheets válidos
+  ✓ Performance <10s
+  ✓ Nuevos campos CF extraídos
+  ✓ Fuzzy mapper activo
+  ✗ Promedio >30 campos/año
+
+⚠️  REVISAR:
+   ✗ Promedio >30 campos/año
