@@ -1,0 +1,131 @@
+{
+  "downloaded_at": "2026-01-29T14:25:13.355749",
+  "years": 4,
+  "companies": 20,
+  "files": {
+    "AAPL": {
+      "2025": "data/AAPL/AAPL_2025_10K.xml",
+      "2024": "data/AAPL/AAPL_2024_10K.xml",
+      "2023": "data/AAPL/AAPL_2023_10K.xml",
+      "2022": "data/AAPL/AAPL_2022_10K.xml"
+    },
+    "MSFT": {
+      "2025": "data/MSFT/MSFT_2025_10K.xml",
+      "2024": "data/MSFT/MSFT_2024_10K.xml",
+      "2023": "data/MSFT/MSFT_2023_10K.xml",
+      "2022": "data/MSFT/MSFT_2022_10K.xml"
+    },
+    "NVDA": {
+      "2025": "data/NVDA/NVDA_2025_10K.xml",
+      "2024": "data/NVDA/NVDA_2024_10K.xml",
+      "2023": "data/NVDA/NVDA_2023_10K.xml",
+      "2022": "data/NVDA/NVDA_2022_10K.xml"
+    },
+    "AVGO": {
+      "2025": "data/AVGO/AVGO_2025_10K.xml",
+      "2024": "data/AVGO/AVGO_2024_10K.xml",
+      "2023": "data/AVGO/AVGO_2023_10K.xml",
+      "2022": "data/AVGO/AVGO_2022_10K.xml"
+    },
+    "ORCL": {
+      "2025": "data/ORCL/ORCL_2025_10K.xml",
+      "2024": "data/ORCL/ORCL_2024_10K.xml",
+      "2023": "data/ORCL/ORCL_2023_10K.xml",
+      "2022": "data/ORCL/ORCL_2022_10K.xml"
+    },
+    "CRM": {
+      "2025": "data/CRM/CRM_2025_10K.xml",
+      "2024": "data/CRM/CRM_2024_10K.xml",
+      "2023": "data/CRM/CRM_2023_10K.xml"
+    },
+    "ADBE": {
+      "2025": "data/ADBE/ADBE_2025_10K.xml",
+      "2024": "data/ADBE/ADBE_2024_10K.xml",
+      "2023": "data/ADBE/ADBE_2023_10K.xml",
+      "2022": "data/ADBE/ADBE_2022_10K.xml"
+    },
+    "CSCO": {
+      "2025": "data/CSCO/CSCO_2025_10K.xml",
+      "2024": "data/CSCO/CSCO_2024_10K.xml",
+      "2023": "data/CSCO/CSCO_2023_10K.xml",
+      "2022": "data/CSCO/CSCO_2022_10K.xml"
+    },
+    "ACN": {
+      "2025": "data/ACN/ACN_2025_10K.xml",
+      "2024": "data/ACN/ACN_2024_10K.xml",
+      "2023": "data/ACN/ACN_2023_10K.xml",
+      "2022": "data/ACN/ACN_2022_10K.xml"
+    },
+    "AMD": {
+      "2025": "data/AMD/AMD_2025_10K.xml",
+      "2024": "data/AMD/AMD_2024_10K.xml",
+      "2023": "data/AMD/AMD_2023_10K.xml",
+      "2022": "data/AMD/AMD_2022_10K.xml"
+    },
+    "NOW": {
+      "2025": "data/NOW/NOW_2025_10K.xml",
+      "2024": "data/NOW/NOW_2024_10K.xml",
+      "2023": "data/NOW/NOW_2023_10K.xml",
+      "2022": "data/NOW/NOW_2022_10K.xml"
+    },
+    "TXN": {
+      "2025": "data/TXN/TXN_2025_10K.xml",
+      "2024": "data/TXN/TXN_2024_10K.xml",
+      "2023": "data/TXN/TXN_2023_10K.xml",
+      "2022": "data/TXN/TXN_2022_10K.xml"
+    },
+    "IBM": {
+      "2025": "data/IBM/IBM_2025_10K.xml",
+      "2024": "data/IBM/IBM_2024_10K.xml",
+      "2023": "data/IBM/IBM_2023_10K.xml",
+      "2022": "data/IBM/IBM_2022_10K.xml"
+    },
+    "QCOM": {
+      "2025": "data/QCOM/QCOM_2025_10K.xml",
+      "2024": "data/QCOM/QCOM_2024_10K.xml",
+      "2023": "data/QCOM/QCOM_2023_10K.xml",
+      "2022": "data/QCOM/QCOM_2022_10K.xml"
+    },
+    "INTU": {
+      "2025": "data/INTU/INTU_2025_10K.xml",
+      "2024": "data/INTU/INTU_2024_10K.xml",
+      "2023": "data/INTU/INTU_2023_10K.xml",
+      "2022": "data/INTU/INTU_2022_10K.xml"
+    },
+    "AMAT": {
+      "2025": "data/AMAT/AMAT_2025_10K.xml",
+      "2024": "data/AMAT/AMAT_2024_10K.xml",
+      "2023": "data/AMAT/AMAT_2023_10K.xml",
+      "2022": "data/AMAT/AMAT_2022_10K.xml"
+    },
+    "PANW": {
+      "2025": "data/PANW/PANW_2025_10K.xml",
+      "2024": "data/PANW/PANW_2024_10K.xml",
+      "2023": "data/PANW/PANW_2023_10K.xml",
+      "2022": "data/PANW/PANW_2022_10K.xml"
+    },
+    "MU": {
+      "2025": "data/MU/MU_2025_10K.xml",
+      "2024": "data/MU/MU_2024_10K.xml",
+      "2023": "data/MU/MU_2023_10K.xml",
+      "2022": "data/MU/MU_2022_10K.xml"
+    },
+    "ADI": {
+      "2025": "data/ADI/ADI_2025_10K.xml",
+      "2024": "data/ADI/ADI_2024_10K.xml",
+      "2023": "data/ADI/ADI_2023_10K.xml",
+      "2022": "data/ADI/ADI_2022_10K.xml"
+    },
+    "LRCX": {
+      "2025": "data/LRCX/LRCX_2025_10K.xml",
+      "2024": "data/LRCX/LRCX_2024_10K.xml",
+      "2023": "data/LRCX/LRCX_2023_10K.xml",
+      "2022": "data/LRCX/LRCX_2022_10K.xml"
+    }
+  },
+  "stats": {
+    "success": 59,
+    "failed": 1,
+    "skipped": 20
+  }
+}
