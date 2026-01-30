@@ -1,31 +1,18 @@
 """
-Peer Comparison Engine - Dynamic benchmarking using real company data
+Peer Comparison Engine - Dynamic Benchmarking (Franklin Framework)
 
-Features:
-- Calculate percentiles from real peer distributions (no hardcoded benchmarks)
-- Compare company metrics against peer group medians/means
-- Generate human-readable interpretations (Top Decile, Above Average, etc.)
-- Count "beats peers" metrics
-- Handle edge cases (NaN values, single peer, missing metrics)
+Uses StatisticalBenchmarkEngine and FranklinInterpretation for context-aware
+peer comparison without hardcoded percentile cuts.
 
-Usage:
-    from backend.signals.peer_comparison import compare_to_peers
-
-    # Load metrics for company and peers
-    company_metrics = calculate_metrics(company_timeseries)
-    peer_metrics = {
-        'MSFT': calculate_metrics(msft_timeseries),
-        'GOOGL': calculate_metrics(googl_timeseries),
-        # ... more peers
-    }
-
-    # Compare
-    benchmarks = compare_to_peers(company_metrics, peer_metrics, 'AAPL')
+Author: @franklin (CTO)
+Sprint 5 - Franklin Framework Refactor
 """
 
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 import numpy as np
+from backend.signals.statistical_engine import StatisticalBenchmarkEngine, IndustryBenchmark
+from backend.signals.franklin_interpretation import FranklinInterpretation
 
 
 @dataclass
@@ -41,7 +28,8 @@ class PeerBenchmark:
         percentile: Company's percentile rank (0-100)
         beats_peers: True if company_value > peer_median
         peer_count: Number of peers in comparison
-        interpretation: Human-readable interpretation (e.g., "Top Decile ↗️")
+        interpretation: Dynamic interpretation from Franklin Framework
+        sector_benchmark: Optional IndustryBenchmark for full sector context
     """
     metric_name: str
     company_value: float
@@ -51,16 +39,12 @@ class PeerBenchmark:
     beats_peers: bool
     peer_count: int
     interpretation: str
+    sector_benchmark: Optional[IndustryBenchmark] = None
 
 
 def calculate_percentile(value: float, peer_values: np.ndarray) -> int:
     """
     Calculate percentile rank of a value within a peer distribution
-
-    Uses NumPy's percentile ranking where:
-    - 0th percentile = value is at/below all peers
-    - 50th percentile = value is at median
-    - 100th percentile = value is at/above all peers
 
     Args:
         value: The value to rank
@@ -68,13 +52,6 @@ def calculate_percentile(value: float, peer_values: np.ndarray) -> int:
 
     Returns:
         Percentile rank (0-100)
-
-    Examples:
-        >>> calculate_percentile(30, np.array([10, 20, 30, 40, 50]))
-        50  # At median
-
-        >>> calculate_percentile(60, np.array([10, 20, 30, 40, 50]))
-        100  # Above all peers
     """
     # Remove NaN values
     valid_peers = peer_values[~np.isnan(peer_values)]
@@ -92,93 +69,74 @@ def calculate_percentile(value: float, peer_values: np.ndarray) -> int:
     return percentile
 
 
-def _generate_interpretation(percentile: int, beats_peers: bool) -> str:
-    """
-    Generate human-readable interpretation from percentile rank
-
-    Args:
-        percentile: Percentile rank (0-100)
-        beats_peers: Whether value beats peer median
-
-    Returns:
-        Interpretation string with emoji
-
-    Examples:
-        >>> _generate_interpretation(95, True)
-        'Top Decile ↗️'
-
-        >>> _generate_interpretation(20, False)
-        'Below Average ↘️'
-    """
-    if percentile >= 90:
-        return "Top Decile ↗️"
-    elif percentile >= 75:
-        return "Top Quartile ↗️"
-    elif percentile >= 60:
-        return "Above Average ↗️"
-    elif percentile >= 40:
-        return "Average →"
-    elif percentile >= 25:
-        return "Below Average ↘️"
-    else:
-        return "Bottom Quartile ↘️"
-
-
 class PeerComparison:
     """
-    Compare company metrics against a peer group using real data
+    Compare company metrics against peer group using Franklin Framework
 
-    Features:
-    - Dynamic benchmark calculation (no hardcoded values)
-    - Percentile ranking across peer distribution
-    - Human-readable interpretations
-    - NaN-safe operations
+    CHANGES FROM PREVIOUS VERSION:
+    - ❌ REMOVED: _generate_interpretation() with hardcoded cuts
+    - ✅ ADDED: StatisticalBenchmarkEngine integration
+    - ✅ ADDED: FranklinInterpretation for dynamic zones
+    - ✅ ADDED: Full sector context (not just peer group)
 
     Attributes:
         company_metrics: Metrics dict from calculate_metrics()
         peer_metrics: Dict of {ticker: metrics} for peer group
-        company_name: Company ticker for reference
+        company_name: Company ticker
+        benchmark_engine: Optional engine for full sector benchmarks
     """
 
     def __init__(
         self,
         company_metrics: Dict,
         peer_metrics: Dict[str, Dict],
-        company_name: str
+        company_name: str,
+        benchmark_engine: Optional[StatisticalBenchmarkEngine] = None
     ):
         """
-        Initialize peer comparison engine
+        Initialize peer comparison with optional sector benchmarks
 
         Args:
-            company_metrics: Output from calculate_metrics() for target company
-            peer_metrics: Dict of {ticker: calculate_metrics() output} for peers
-            company_name: Ticker symbol of target company
+            company_metrics: Output from calculate_metrics()
+            peer_metrics: Dict of {ticker: metrics}
+            company_name: Ticker symbol
+            benchmark_engine: Optional StatisticalBenchmarkEngine for sector context
 
         Example:
+            >>> # With sector benchmarks (Franklin Framework)
             >>> comparison = PeerComparison(
             ...     company_metrics=aapl_metrics,
             ...     peer_metrics={'MSFT': msft_metrics, 'GOOGL': googl_metrics},
+            ...     company_name='AAPL',
+            ...     benchmark_engine=engine  # Full sector context
+            ... )
+
+            >>> # Without sector benchmarks (legacy mode)
+            >>> comparison = PeerComparison(
+            ...     company_metrics=aapl_metrics,
+            ...     peer_metrics={'MSFT': msft_metrics},
             ...     company_name='AAPL'
             ... )
         """
         self.company_metrics = company_metrics
         self.peer_metrics = peer_metrics
         self.company_name = company_name
+        self.benchmark_engine = benchmark_engine
 
-    def compare_metric(self, metric_name: str, category: str) -> Optional[PeerBenchmark]:
+    def compare_metric(
+        self,
+        metric_name: str,
+        category: str
+    ) -> Optional[PeerBenchmark]:
         """
-        Compare a single metric against peer group
+        Compare a single metric against peer group with dynamic interpretation
 
         Args:
             metric_name: Name of metric to compare (e.g., 'ROE')
             category: Category of metric (e.g., 'profitability')
 
         Returns:
-            PeerBenchmark object or None if metric not available
-
-        Example:
-            >>> benchmark = comparison.compare_metric('ROE', 'profitability')
-            >>> print(f"ROE: {benchmark.percentile}th percentile")
+            PeerBenchmark object with Franklin interpretation or None
         """
         # Get company's metric value (latest year)
         if category not in self.company_metrics:
@@ -191,8 +149,7 @@ class PeerComparison:
         if len(company_values) == 0:
             return None
 
-        # Use latest year value (index -1)
-        company_value = float(company_values[-1])
+        company_value = float(company_values[-1])  # Latest year
 
         # Collect peer values (latest year for each peer)
         peer_values_list = []
@@ -206,23 +163,43 @@ class PeerComparison:
             return None
 
         peer_values = np.array(peer_values_list)
+
         # Remove NaN values before calculating statistics
         valid_peer_values = peer_values[~np.isnan(peer_values)]
-
         if len(valid_peer_values) == 0:
-        # No valid peer data for this metric
             return None
 
-
-        # Calculate statistics
-        peer_median = float(np.nanmedian(peer_values))
-        peer_mean = float(np.nanmean(peer_values))
-
-
+        # Calculate peer statistics
+        peer_median = float(np.median(valid_peer_values))
+        peer_mean = float(np.mean(valid_peer_values))
         percentile = calculate_percentile(company_value, peer_values)
         beats_peers = company_value > peer_median
         peer_count = len(peer_values_list)
-        interpretation = _generate_interpretation(percentile, beats_peers)
+
+        # Get sector benchmark if engine available
+        sector_benchmark = None
+        if self.benchmark_engine:
+            sector_benchmark = self.benchmark_engine.calculate_benchmarks(
+                category, metric_name
+            )
+
+        # Generate interpretation using Franklin Framework
+        if sector_benchmark:
+            # Use full sector context
+            zone = FranklinInterpretation.interpret_value(
+                value=company_value,
+                benchmark=sector_benchmark,
+                metric_name=metric_name
+            )
+            interpretation = f"{zone.name} {zone.icon}"
+        else:
+            # Fallback to percentile interpretation
+            zone = FranklinInterpretation.interpret_percentile(
+                percentile=percentile,
+                benchmark=None,  # Will use percentile-only logic
+                metric_name=metric_name
+            )
+            interpretation = f"{zone.name} {zone.icon}"
 
         return PeerBenchmark(
             metric_name=metric_name,
@@ -232,7 +209,8 @@ class PeerComparison:
             percentile=percentile,
             beats_peers=beats_peers,
             peer_count=peer_count,
-            interpretation=interpretation
+            interpretation=interpretation,
+            sector_benchmark=sector_benchmark
         )
 
     def compare_all(self) -> Dict[str, List[PeerBenchmark]]:
@@ -240,12 +218,7 @@ class PeerComparison:
         Compare all available metrics against peers
 
         Returns:
-            Dict of {category: [PeerBenchmark, ...]} for all categories
-
-        Example:
-            >>> benchmarks = comparison.compare_all()
-            >>> for category, benchmark_list in benchmarks.items():
-            ...     print(f"{category}: {len(benchmark_list)} metrics compared")
+            Dict of {category: [PeerBenchmark, ...]}
         """
         results = {}
 
@@ -268,10 +241,6 @@ class PeerComparison:
 
         Returns:
             Number of metrics where company > peer_median
-
-        Example:
-            >>> beats_count = comparison.count_beats_peers()
-            >>> print(f"Beats peers on {beats_count} metrics")
         """
         all_benchmarks = self.compare_all()
 
@@ -287,47 +256,40 @@ class PeerComparison:
 def compare_to_peers(
     company_metrics: Dict,
     peer_metrics: Dict[str, Dict],
-    company_name: str
+    company_name: str,
+    benchmark_engine: Optional[StatisticalBenchmarkEngine] = None
 ) -> Dict[str, List[PeerBenchmark]]:
     """
-    High-level function to compare company metrics against peer group
-
-    This is the main public API for peer comparison.
+    High-level API for peer comparison with Franklin Framework
 
     Args:
-        company_metrics: Output from calculate_metrics() for target company
-        peer_metrics: Dict of {ticker: metrics} for peer companies
-        company_name: Ticker symbol of target company
+        company_metrics: Output from calculate_metrics()
+        peer_metrics: Dict of {ticker: metrics}
+        company_name: Ticker symbol
+        benchmark_engine: Optional StatisticalBenchmarkEngine for sector context
 
     Returns:
         Dict of {category: [PeerBenchmark, ...]}
 
     Example:
-        >>> from backend.metrics import calculate_metrics
-        >>> from backend.parsers import MultiFileXBRLParser
+        >>> # With Franklin Framework (sector context)
+        >>> from backend.parsers.sec_downloader import load_json
+        >>> from backend.signals.statistical_engine import StatisticalBenchmarkEngine
         >>>
-        >>> # Load company data
-        >>> aapl_parser = MultiFileXBRLParser('AAPL', 'data')
-        >>> aapl_ts = aapl_parser.extract_timeseries(years=4)
-        >>> aapl_metrics = calculate_metrics(aapl_ts)
+        >>> sector_data = load_json('outputs/sector_benchmarks_tech.json')
+        >>> engine = StatisticalBenchmarkEngine(sector_data)
         >>>
-        >>> # Load peer data
-        >>> msft_parser = MultiFileXBRLParser('MSFT', 'data')
-        >>> msft_ts = msft_parser.extract_timeseries(years=4)
-        >>> msft_metrics = calculate_metrics(msft_ts)
-        >>>
-        >>> # Compare
         >>> benchmarks = compare_to_peers(
         ...     company_metrics=aapl_metrics,
-        ...     peer_metrics={'MSFT': msft_metrics},
-        ...     company_name='AAPL'
+        ...     peer_metrics={'MSFT': msft_metrics, 'GOOGL': googl_metrics},
+        ...     company_name='AAPL',
+        ...     benchmark_engine=engine  # Full sector context
         ... )
-        >>>
-        >>> # Print results
-        >>> for category, benchmark_list in benchmarks.items():
-        ...     print(f"\n{category.upper()}:")
-        ...     for b in benchmark_list:
-        ...         print(f"  {b.metric_name}: {b.percentile}th %ile - {b.interpretation}")
     """
-    comparison = PeerComparison(company_metrics, peer_metrics, company_name)
+    comparison = PeerComparison(
+        company_metrics,
+        peer_metrics,
+        company_name,
+        benchmark_engine
+    )
     return comparison.compare_all()
