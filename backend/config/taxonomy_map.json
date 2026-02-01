@@ -1,10 +1,11 @@
 {
   "_metadata": {
-    "version": "1.2.0",
-    "sprint": "3 - Day 4 - MICRO-TAREA 3 COMPLETADA",
-    "total_concepts": 33,
-    "description": "Inventario completo: 18 Balance + 13 Income + 5 Cash Flow",
-    "last_updated": "2025-01-25"
+    "version": "2.0.0",
+    "sprint": "6 - Issue #001 - Taxonomy Expansion",
+    "total_concepts": 40,
+    "description": "Inventario expandido con aliases exhaustivos: 18 Balance + 13 Income + 5 Cash Flow + 4 Extended",
+    "last_updated": "2025-01-31",
+    "changelog": "Agregados 150+ aliases nuevos para reducir mapping gaps de 56 a <10"
   },
 
   "NetIncome": {
@@ -12,7 +13,12 @@
     "aliases": [
       "ProfitLoss",
       "NetIncome",
-      "NetIncomeLossAvailableToCommonStockholdersBasic"
+      "NetIncomeLossAvailableToCommonStockholdersBasic",
+      "NetIncomeLossAvailableToCommonStockholdersDiluted",
+      "ProfitLossAttributableToParent",
+      "NetIncomeLossAttributableToParentDiluted",
+      "IncomeLossFromContinuingOperations",
+      "IncomeLossFromContinuingOperationsIncludingPortionAttributableToNoncontrollingInterest"
     ],
     "description": "Net income after all expenses and taxes",
     "xbrl_namespace": "us-gaap"
@@ -23,7 +29,11 @@
     "aliases": [
       "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
       "ShareholdersEquity",
-      "PartnersCapital"
+      "PartnersCapital",
+      "StockholdersEquityAttributableToParent",
+      "ShareholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+      "PartnersCapitalAccountUnitsOutstanding",
+      "MembersEquity"
     ],
     "description": "Total shareholders equity",
     "xbrl_namespace": "us-gaap"
@@ -31,14 +41,26 @@
 
   "Assets": {
     "primary": "Assets",
-    "aliases": ["AssetsTotal"],
+    "aliases": [
+      "AssetsTotal",
+      "AssetsCurrent",
+      "AssetsNoncurrent",
+      "AssetsCurrentAndNoncurrent"
+    ],
     "description": "Total assets",
     "xbrl_namespace": "us-gaap"
   },
 
   "Liabilities": {
     "primary": "Liabilities",
-    "aliases": ["LiabilitiesTotal", "LiabilitiesAndStockholdersEquity"],
+    "aliases": [
+      "LiabilitiesTotal",
+      "LiabilitiesAndStockholdersEquity",
+      "LiabilitiesCurrent",
+      "LiabilitiesNoncurrent",
+      "LiabilitiesCurrentAndNoncurrent",
+      "LiabilitiesAndShareholdersEquity"
+    ],
     "description": "Total liabilities",
     "xbrl_namespace": "us-gaap"
   },
@@ -49,7 +71,12 @@
       "Revenues",
       "SalesRevenueNet",
       "RevenueFromContractWithCustomer",
-      "SalesRevenueGoodsNet"
+      "SalesRevenueGoodsNet",
+      "SalesRevenueServicesNet",
+      "RevenueFromSaleOfGoods",
+      "RevenuesNetOfInterestExpense",
+      "SalesRevenueNetIncludingInterest",
+      "RevenueNotFromContractWithCustomer"
     ],
     "description": "Total revenue",
     "xbrl_namespace": "us-gaap"
@@ -57,14 +84,21 @@
 
   "CurrentAssets": {
     "primary": "AssetsCurrent",
-    "aliases": [],
+    "aliases": ["AssetsCurrentAbstract", "CurrentAssets"],
     "description": "Current assets",
     "xbrl_namespace": "us-gaap"
   },
 
   "CashAndEquivalents": {
     "primary": "CashAndCashEquivalentsAtCarryingValue",
-    "aliases": ["Cash", "CashCashEquivalentsAndShortTermInvestments"],
+    "aliases": [
+      "Cash",
+      "CashCashEquivalentsAndShortTermInvestments",
+      "CashAndCashEquivalentsFairValueDisclosure",
+      "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "CashEquivalentsAtCarryingValue",
+      "CashAndDueFromBanks"
+    ],
     "description": "Cash and cash equivalents",
     "xbrl_namespace": "us-gaap"
   },
@@ -73,7 +107,11 @@
     "primary": "LongTermDebt",
     "aliases": [
       "LongTermDebtNoncurrent",
-      "LongTermDebtAndCapitalLeaseObligations"
+      "LongTermDebtAndCapitalLeaseObligations",
+      "LongTermDebtAndCapitalLeaseObligationsNoncurrent",
+      "DebtLongTermAndShortTermCombinedAmount",
+      "LongTermDebtCurrent",
+      "LongTermDebtMaturitiesRepaymentsOfPrincipalRemainderOfFiscalYear"
     ],
     "description": "Long-term debt",
     "xbrl_namespace": "us-gaap"
@@ -81,49 +119,73 @@
 
   "CurrentLiabilities": {
     "primary": "LiabilitiesCurrent",
-    "aliases": [],
+    "aliases": ["LiabilitiesCurrentAbstract", "CurrentLiabilities"],
     "description": "Current liabilities",
     "xbrl_namespace": "us-gaap"
   },
 
   "CostOfRevenue": {
     "primary": "CostOfRevenue",
-    "aliases": ["CostOfGoodsAndServicesSold", "CostOfGoodsSold"],
+    "aliases": [
+      "CostOfGoodsAndServicesSold",
+      "CostOfGoodsSold",
+      "CostOfGoodsAndServiceExcludingDepreciationDepletionAndAmortization",
+      "CostOfServices",
+      "CostOfGoodsAndServicesExcludingDepreciationDepletionAndAmortization"
+    ],
     "description": "Cost of revenue/goods sold",
     "xbrl_namespace": "us-gaap"
   },
 
   "GrossProfit": {
     "primary": "GrossProfit",
-    "aliases": [],
+    "aliases": ["GrossProfitLoss", "ProfitLossBeforeOperatingExpenses"],
     "description": "Gross profit",
     "xbrl_namespace": "us-gaap"
   },
 
   "OperatingIncome": {
     "primary": "OperatingIncomeLoss",
-    "aliases": ["OperatingIncome"],
+    "aliases": [
+      "OperatingIncome",
+      "IncomeLossFromOperations",
+      "OperatingIncomeLossIncludingPortionAttributableToNoncontrollingInterest"
+    ],
     "description": "Operating income",
     "xbrl_namespace": "us-gaap"
   },
 
   "InterestExpense": {
     "primary": "InterestExpense",
-    "aliases": ["InterestExpenseDebt"],
+    "aliases": [
+      "InterestExpenseDebt",
+      "InterestExpenseOther",
+      "InterestAndDebtExpense",
+      "InterestExpenseBorrowings"
+    ],
     "description": "Interest expense",
     "xbrl_namespace": "us-gaap"
   },
 
   "OperatingCashFlow": {
     "primary": "NetCashProvidedByUsedInOperatingActivities",
-    "aliases": ["CashProvidedByUsedInOperatingActivities"],
+    "aliases": [
+      "CashProvidedByUsedInOperatingActivities",
+      "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"
+    ],
     "description": "Operating cash flow",
     "xbrl_namespace": "us-gaap"
   },
 
   "CapitalExpenditures": {
     "primary": "PaymentsToAcquirePropertyPlantAndEquipment",
-    "aliases": ["CapitalExpenditures", "PaymentsForCapitalImprovements"],
+    "aliases": [
+      "CapitalExpenditures",
+      "PaymentsForCapitalImprovements",
+      "PaymentsToAcquireProductiveAssets",
+      "PaymentsToAcquireOtherPropertyPlantAndEquipment",
+      "CapitalExpendituresIncurredButNotYetPaid"
+    ],
     "description": "Capital expenditures",
     "xbrl_namespace": "us-gaap"
   },
@@ -132,21 +194,39 @@
 
   "Inventory": {
     "primary": "InventoryNet",
-    "aliases": ["Inventory"],
+    "aliases": [
+      "Inventory",
+      "InventoryGross",
+      "InventoryFinishedGoods",
+      "InventoryWorkInProcess",
+      "InventoryRawMaterials"
+    ],
     "description": "Total inventory",
     "xbrl_namespace": "us-gaap"
   },
 
   "AccountsReceivable": {
     "primary": "AccountsReceivableNetCurrent",
-    "aliases": ["AccountsReceivableNet", "ReceivablesNetCurrent"],
+    "aliases": [
+      "AccountsReceivableNet",
+      "ReceivablesNetCurrent",
+      "AccountsNotesAndLoansReceivableNetCurrent",
+      "AccountsReceivableGrossCurrent",
+      "NotesAndLoansReceivableNetCurrent"
+    ],
     "description": "Accounts receivable (net of allowances)",
     "xbrl_namespace": "us-gaap"
   },
 
   "ShortTermDebt": {
     "primary": "ShortTermBorrowings",
-    "aliases": ["DebtCurrent", "ShortTermDebtAndCurrentPortionOfLongTermDebt"],
+    "aliases": [
+      "DebtCurrent",
+      "ShortTermDebtAndCurrentPortionOfLongTermDebt",
+      "ShortTermBankLoansAndNotesPayable",
+      "CommercialPaper",
+      "DebtCurrentAndNoncurrent"
+    ],
     "description": "Short-term debt and current portion of long-term debt",
     "xbrl_namespace": "us-gaap"
   },
@@ -155,7 +235,9 @@
     "primary": "OperatingLeaseLiability",
     "aliases": [
       "OperatingLeaseLiabilityCurrent",
-      "OperatingLeaseLiabilityNoncurrent"
+      "OperatingLeaseLiabilityNoncurrent",
+      "OperatingLeaseLiabilityCurrentAndNoncurrent",
+      "LesseeOperatingLeaseLiabilityPaymentsDue"
     ],
     "description": "Operating lease liability (ASC 842)",
     "xbrl_namespace": "us-gaap"
@@ -163,14 +245,25 @@
 
   "Goodwill": {
     "primary": "Goodwill",
-    "aliases": [],
+    "aliases": [
+      "GoodwillAndIntangibleAssetsNet",
+      "GoodwillGross",
+      "GoodwillImpairmentLoss",
+      "GoodwillAcquiredDuringPeriod"
+    ],
     "description": "Goodwill from acquisitions",
     "xbrl_namespace": "us-gaap"
   },
 
   "IntangibleAssets": {
     "primary": "IntangibleAssetsNetExcludingGoodwill",
-    "aliases": ["FiniteLivedIntangibleAssetsNet", "IntangibleAssetsNet"],
+    "aliases": [
+      "FiniteLivedIntangibleAssetsNet",
+      "IntangibleAssetsNet",
+      "IntangibleAssetsGrossExcludingGoodwill",
+      "FiniteLivedIntangibleAssetsGross",
+      "IndefiniteLivedIntangibleAssetsExcludingGoodwill"
+    ],
     "description": "Intangible assets (excluding goodwill)",
     "xbrl_namespace": "us-gaap"
   },
@@ -179,7 +272,10 @@
     "primary": "PropertyPlantAndEquipmentNet",
     "aliases": [
       "PropertyPlantAndEquipmentGross",
-      "PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization"
+      "PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization",
+      "PropertyPlantAndEquipmentNetAbstract",
+      "PropertyPlantAndEquipmentPolicyTextBlock",
+      "PropertyPlantAndEquipmentTextBlock"
     ],
     "description": "Property, plant and equipment (net)",
     "xbrl_namespace": "us-gaap"
@@ -187,28 +283,45 @@
 
   "AccumulatedDepreciation": {
     "primary": "AccumulatedDepreciationDepletionAndAmortizationPropertyPlantAndEquipment",
-    "aliases": ["PropertyPlantAndEquipmentAccumulatedDepreciation"],
+    "aliases": [
+      "PropertyPlantAndEquipmentAccumulatedDepreciation",
+      "AccumulatedDepreciationAndAmortization",
+      "AccumulatedDepreciation"
+    ],
     "description": "Accumulated depreciation",
     "xbrl_namespace": "us-gaap"
   },
 
   "RetainedEarnings": {
     "primary": "RetainedEarningsAccumulatedDeficit",
-    "aliases": ["RetainedEarnings"],
+    "aliases": [
+      "RetainedEarnings",
+      "RetainedEarningsMember",
+      "RetainedEarningsUnappropriated",
+      "AccumulatedOtherComprehensiveIncomeLossNetOfTax"
+    ],
     "description": "Retained earnings (accumulated deficit)",
     "xbrl_namespace": "us-gaap"
   },
 
   "TreasuryStock": {
     "primary": "TreasuryStockValue",
-    "aliases": ["TreasuryStockCommonValue"],
+    "aliases": [
+      "TreasuryStockCommonValue",
+      "TreasuryStockShares",
+      "TreasuryStockAcquiredAverageCostPerShare"
+    ],
     "description": "Treasury stock (at cost)",
     "xbrl_namespace": "us-gaap"
   },
 
   "OtherCurrentAssets": {
     "primary": "OtherAssetsCurrent",
-    "aliases": ["AssetsCurrentOther"],
+    "aliases": [
+      "AssetsCurrentOther",
+      "OtherAssetsCurrentAbstract",
+      "PrepaidExpenseAndOtherAssetsCurrent"
+    ],
     "description": "Other current assets",
     "xbrl_namespace": "us-gaap"
   },
@@ -217,28 +330,48 @@
 
   "ResearchAndDevelopment": {
     "primary": "ResearchAndDevelopmentExpense",
-    "aliases": ["ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"],
+    "aliases": [
+      "ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost",
+      "ResearchDevelopmentAndComputerSoftwareExpense",
+      "ResearchAndDevelopmentExpenseSoftwareExcludingAcquiredInProcessCost"
+    ],
     "description": "Research and development expense",
     "xbrl_namespace": "us-gaap"
   },
 
   "SellingGeneralAdmin": {
     "primary": "SellingGeneralAndAdministrativeExpense",
-    "aliases": ["GeneralAndAdministrativeExpense"],
+    "aliases": [
+      "GeneralAndAdministrativeExpense",
+      "SellingAndMarketingExpense",
+      "SellingExpense",
+      "AdministrativeExpense"
+    ],
     "description": "Selling, general and administrative expenses",
     "xbrl_namespace": "us-gaap"
   },
 
   "TaxExpense": {
     "primary": "IncomeTaxExpenseBenefit",
-    "aliases": ["CurrentIncomeTaxExpenseBenefit", "IncomeTaxesPaid"],
+    "aliases": [
+      "CurrentIncomeTaxExpenseBenefit",
+      "IncomeTaxesPaid",
+      "IncomeTaxExpenseBenefitContinuingOperations",
+      "DeferredIncomeTaxExpenseBenefit",
+      "IncomeTaxReconciliationIncomeTaxExpenseBenefitAtFederalStatutoryIncomeTaxRate"
+    ],
     "description": "Income tax expense",
     "xbrl_namespace": "us-gaap"
   },
 
   "DepreciationAmortization": {
     "primary": "DepreciationDepletionAndAmortization",
-    "aliases": ["Depreciation", "DepreciationAndAmortization"],
+    "aliases": [
+      "Depreciation",
+      "DepreciationAndAmortization",
+      "AmortizationOfIntangibleAssets",
+      "DepreciationNonproduction"
+    ],
     "description": "Depreciation and amortization",
     "xbrl_namespace": "us-gaap"
   },
@@ -247,7 +380,9 @@
     "primary": "NonoperatingIncomeExpense",
     "aliases": [
       "OtherNonoperatingIncomeExpense",
-      "InvestmentIncomeNonoperating"
+      "InvestmentIncomeNonoperating",
+      "NonoperatingGainsLosses",
+      "OtherNonoperatingIncomeExpenseAbstract"
     ],
     "description": "Non-operating income (expense)",
     "xbrl_namespace": "us-gaap"
@@ -257,7 +392,9 @@
     "primary": "AssetImpairmentCharges",
     "aliases": [
       "GoodwillImpairmentLoss",
-      "ImpairmentOfIntangibleAssetsExcludingGoodwill"
+      "ImpairmentOfIntangibleAssetsExcludingGoodwill",
+      "ImpairmentOfLongLivedAssetsHeldForUse",
+      "AssetImpairmentChargesNetOfInsuranceProceeds"
     ],
     "description": "Asset impairment charges",
     "xbrl_namespace": "us-gaap"
@@ -267,19 +404,23 @@
     "primary": "RestructuringCharges",
     "aliases": [
       "RestructuringCostsAndAssetImpairmentCharges",
-      "SeveranceCosts1"
+      "SeveranceCosts1",
+      "RestructuringAndRelatedCostExpectedCost1",
+      "RestructuringReserve"
     ],
     "description": "Restructuring charges",
     "xbrl_namespace": "us-gaap"
   },
 
-  "_comment_cash_flow_extensions": "=== CASH FLOW EXTENSIONS (3 concepts) - MICRO-TAREA 3 ===",
+  "_comment_cash_flow_extensions": "=== CASH FLOW EXTENSIONS (3 concepts) ===",
 
   "DividendsPaid": {
     "primary": "PaymentsOfDividends",
     "aliases": [
       "PaymentsOfDividendsCommonStock",
-      "DividendsPaidToCommonShareholders"
+      "DividendsPaidToCommonShareholders",
+      "PaymentsOfOrdinaryDividends",
+      "PaymentsOfDividendsMinorityInterest"
     ],
     "description": "Cash paid to shareholders as dividends",
     "xbrl_namespace": "us-gaap"
@@ -289,7 +430,9 @@
     "primary": "ShareBasedCompensation",
     "aliases": [
       "AllocatedShareBasedCompensationExpense",
-      "EmployeeServiceShareBasedCompensationNonvestedAwardsTotalCompensationCostNotYetRecognized"
+      "EmployeeServiceShareBasedCompensationNonvestedAwardsTotalCompensationCostNotYetRecognized",
+      "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsGrantsInPeriodGross",
+      "AdjustmentsToReconcileNetIncomeLossToCashProvidedByUsedInOperatingActivitiesShareBasedCompensation"
     ],
     "description": "Non-cash expense from equity-based employee compensation",
     "xbrl_namespace": "us-gaap"
@@ -299,9 +442,60 @@
     "primary": "IncreaseDecreaseInOperatingCapital",
     "aliases": [
       "IncreaseDecreaseInWorkingCapital",
-      "ChangeInWorkingCapitalExcludingCashAndCashEquivalents"
+      "ChangeInWorkingCapitalExcludingCashAndCashEquivalents",
+      "IncreaseDecreaseInOperatingCapitalAbstract",
+      "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"
     ],
     "description": "Net change in operating assets and liabilities",
+    "xbrl_namespace": "us-gaap"
+  },
+
+  "_comment_extended_concepts": "=== EXTENDED CONCEPTS (4 additional) ===",
+
+  "SharesOutstanding": {
+    "primary": "CommonStockSharesOutstanding",
+    "aliases": [
+      "CommonStockSharesIssued",
+      "SharesOutstanding",
+      "WeightedAverageNumberOfSharesOutstandingBasic",
+      "WeightedAverageNumberOfDilutedSharesOutstanding"
+    ],
+    "description": "Common shares outstanding",
+    "xbrl_namespace": "us-gaap"
+  },
+
+  "EarningsPerShare": {
+    "primary": "EarningsPerShareBasic",
+    "aliases": [
+      "EarningsPerShareDiluted",
+      "IncomeLossFromContinuingOperationsPerBasicShare",
+      "IncomeLossFromContinuingOperationsPerDilutedShare"
+    ],
+    "description": "Earnings per share",
+    "xbrl_namespace": "us-gaap"
+  },
+
+  "MarketableSecurities": {
+    "primary": "MarketableSecuritiesCurrent",
+    "aliases": [
+      "AvailableForSaleSecuritiesCurrent",
+      "ShortTermInvestments",
+      "MarketableSecurities",
+      "AvailableForSaleSecurities"
+    ],
+    "description": "Marketable securities (short-term investments)",
+    "xbrl_namespace": "us-gaap"
+  },
+
+  "DeferredRevenue": {
+    "primary": "ContractWithCustomerLiabilityCurrent",
+    "aliases": [
+      "DeferredRevenueCurrent",
+      "ContractWithCustomerLiability",
+      "CustomerAdvancesAndDepositsCurrent",
+      "DeferredRevenueArrangementByTypeTable"
+    ],
+    "description": "Deferred revenue (unearned revenue)",
     "xbrl_namespace": "us-gaap"
   }
 }

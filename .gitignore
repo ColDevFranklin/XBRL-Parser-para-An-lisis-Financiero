@@ -54,3 +54,5 @@ Thumbs.db
 .env
 .env.local
 data/apple_10k_*_xbrl.xml
+
+comandos.txt

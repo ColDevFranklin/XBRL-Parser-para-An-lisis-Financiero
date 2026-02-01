@@ -21,13 +21,19 @@ Cambios Sprint 3 Día 4:
 - FIX: extract_all() ahora usa year explícito (igual que time-series)
 - **NUEVO**: FuzzyMapper para manejar extension tags (80/20 rule)
 
+Cambios Sprint 6 - Issue #001 FIX:
+- FIX CRÍTICO: Validación relajada en extract_timeseries (3/4 core fields)
+- FIX CRÍTICO: _get_available_tags() filtra solo facts numéricos
+- FIX: Manejo graceful de años sin income context
+- MEJORA: Logging detallado de core fields faltantes
+
 Cambios Transparency Engine:
 - Retorna SourceTrace en lugar de floats
 - Metadata completa de origen XBRL (tag, context, timestamp)
 - Trazabilidad end-to-end para analistas
 
 Author: @franklin
-Sprint: 3 Día 4 - Micro-Tarea 3 (Cash Flow 5) - COMPLETADO
+Sprint: 6 - Multi-Sector Expansion - Issue #001 Fix
 """
 
 from lxml import etree
@@ -64,6 +70,11 @@ class XBRLParser:
     - FuzzyMapper para extension tags (80/20 rule)
     - Parent tag discovery via XSD
     - Mapping gap tracking para transparencia institucional
+
+    SPRINT 6 - ISSUE #001 FIX:
+    - Validación relajada: 3/4 core fields suficiente
+    - _get_available_tags() retorna solo facts numéricos
+    - Manejo graceful de income context faltante
 
     Uso:
         parser = XBRLParser('apple.xml')
@@ -271,10 +282,8 @@ class XBRLParser:
                 aliases=aliases
             )
 
-            # DESPUÉS (CORRECTO):
             if fuzzy_tag:
-                    # Extraer local name (sin namespace)
-                    # fuzzy_tag ahora es FuzzyMatchResult, necesitamos .value
+                # Extraer local name (sin namespace)
                 tag_value = fuzzy_tag.value if hasattr(fuzzy_tag, 'value') else str(fuzzy_tag)
                 local_name = tag_value.split(':')[-1] if ':' in tag_value else tag_value
 
@@ -378,23 +387,39 @@ class XBRLParser:
 
     def _get_available_tags(self) -> List[str]:
         """
-        Obtiene lista de todos los tags disponibles en el XBRL instance.
+        Obtiene lista de tags disponibles en el XBRL instance.
+
+        FIX SPRINT 6 - ISSUE #001:
+        Ahora filtra SOLO facts numéricos con contextRef (datos financieros reales).
+
+        ANTES: Retornaba TODO (metadata, notes, disclosure texts)
+        DESPUÉS: Solo elementos con @contextRef Y valor numérico
 
         Returns:
-            Lista de tags con namespace (ej: ['us-gaap:Assets', 'aapl:NetSalesOfiPhone'])
+            Lista de tags con namespace (ej: ['us-gaap:Assets', 'us-gaap:Revenues'])
         """
-        # Buscar todos los elementos con contextRef (son facts XBRL)
+        # Buscar SOLO elementos con contextRef (facts financieros)
         elements = self.root.xpath(".//*[@contextRef]")
 
-        # Extraer tag names únicos
+        # Extraer tag names únicos SOLO si tienen valor numérico
         tags = set()
         for elem in elements:
-            # Obtener tag completo con namespace
-            if elem.prefix:
-                tag = f"{elem.prefix}:{elem.tag.split('}')[-1]}"
-            else:
-                tag = elem.tag.split('}')[-1]
-            tags.add(tag)
+            # Filtrar solo elementos con texto numérico
+            if elem.text and elem.text.strip():
+                try:
+                    # Intentar parsear como float
+                    float(elem.text)
+
+                    # Es numérico → agregar tag
+                    if elem.prefix:
+                        tag = f"{elem.prefix}:{elem.tag.split('}')[-1]}"
+                    else:
+                        tag = elem.tag.split('}')[-1]
+                    tags.add(tag)
+
+                except (ValueError, AttributeError):
+                    # No es numérico → skip
+                    continue
 
         return list(tags)
 
@@ -658,6 +683,11 @@ class XBRLParser:
         SPRINT 3 DÍA 4 - INVENTARIO COMPLETO:
         - 33 conceptos por año (18 Balance + 13 Income + 5 CF) ✅
 
+        SPRINT 6 - ISSUE #001 FIX:
+        - Validación relajada: 3/4 core fields suficiente
+        - Logging mejorado de core fields faltantes
+        - Manejo graceful de años sin income context
+
         Args:
             years: Número máximo de años a extraer (default: 5)
 
@@ -703,18 +733,36 @@ class XBRLParser:
                 print(f"\n   → Procesando año {year}...")
                 year_data = self._extract_year_data(year)
 
-                # Validar que extrajo al menos datos básicos
-                if year_data.get('Assets') and year_data.get('Revenue'):
+                # FIX SPRINT 6 - ISSUE #001: Validación relajada
+                # Aceptar año si tiene 3/4 core fields (Assets, Revenue, NetIncome, Equity)
+                core_fields = ['Assets', 'Revenue', 'NetIncome', 'Equity']
+                found_fields = sum(1 for f in core_fields if f in year_data)
+
+                if found_fields >= 3:  # Accept if 3/4 core fields present
                     result[year] = year_data
-                    print(f"     ✓ {len(year_data)} campos extraídos")
+                    print(f"     ✓ {len(year_data)} campos extraídos ({found_fields}/4 core)")
+
+                    # Log cuáles core fields faltan (para debugging)
+                    missing = [f for f in core_fields if f not in year_data]
+                    if missing:
+                        print(f"     ⚠️  Core fields faltantes: {missing}")
                 else:
-                    print(f"     ⚠️  Datos incompletos para {year}")
+                    print(f"     ✗ Datos insuficientes para {year} ({found_fields}/4 core)")
+                    found = [f for f in core_fields if f in year_data]
+                    missing = [f for f in core_fields if f not in year_data]
+                    print(f"        Encontrados: {found}")
+                    print(f"        Faltantes: {missing}")
 
             except Exception as e:
                 print(f"     ✗ Error en año {year}: {e}")
                 continue
 
         print(f"\n✓ Time-series completo: {len(result)}/{len(years_to_extract)} años")
+
+        # FIX SPRINT 6: Warning si sector benchmarking bloqueado
+        if len(result) < 3:
+            print(f"⚠️  WARNING: Sector benchmarking requiere n≥3, solo {len(result)} años disponibles")
+
         return result
 
     def _extract_year_data(self, year: int) -> Dict[str, SourceTrace]:
@@ -727,6 +775,10 @@ class XBRLParser:
         CAMBIO Sprint 3 Día 4 - MICRO-TAREA 3: Cash Flow expandido a 5 conceptos ✅
         CAMBIO Sprint 3 Día 4 - FUZZY: Usa fuzzy matching en cada extracción
 
+        FIX SPRINT 6 - ISSUE #001:
+        - Manejo graceful si income context no existe (ej: año 2022)
+        - Extrae balance sheet aunque income falle
+
         Args:
             year: Año fiscal (ej: 2025)
 
@@ -734,16 +786,20 @@ class XBRLParser:
             Dict con SourceTrace por cada campo financiero
 
         Raises:
-            ValueError: Si no existen contextos para el año
+            ValueError: Si no existe balance context para el año
         """
-        # Obtener contextos del año específico
+        # Obtener balance context (requerido)
         balance_ctx = self.context_mgr.get_balance_context(year=year)
-        income_ctx = self.context_mgr.get_income_context(year=year)
-
         if not balance_ctx:
             raise ValueError(f"Balance context no encontrado para {year}")
-        if not income_ctx:
-            raise ValueError(f"Income context no encontrado para {year}")
+
+        # Intentar obtener income context (opcional)
+        income_ctx = None
+        try:
+            income_ctx = self.context_mgr.get_income_context(year=year)
+        except ValueError:
+            # Income context no existe → solo extraer balance sheet
+            print(f"        ⚠️  Income context no disponible para {year}")
 
         year_data = {}
 
@@ -786,56 +842,58 @@ class XBRLParser:
         # ====================================================================
         # INCOME STATEMENT (duration context) - MICRO-TAREA 2: 13 CONCEPTOS ✅
         # ====================================================================
-        income_fields = {
-            # --- CORE 6 ---
-            'Revenue': 'income_statement',
-            'NetIncome': 'income_statement',
-            'OperatingIncome': 'income_statement',
-            'GrossProfit': 'income_statement',
-            'CostOfRevenue': 'income_statement',
-            'InterestExpense': 'income_statement',
+        # Solo extraer si income_ctx disponible
+        if income_ctx:
+            income_fields = {
+                # --- CORE 6 ---
+                'Revenue': 'income_statement',
+                'NetIncome': 'income_statement',
+                'OperatingIncome': 'income_statement',
+                'GrossProfit': 'income_statement',
+                'CostOfRevenue': 'income_statement',
+                'InterestExpense': 'income_statement',
 
-            # --- NUEVOS 7 (Pro Extensions) ---
-            'ResearchAndDevelopment': 'income_statement',
-            'SellingGeneralAdmin': 'income_statement',
-            'TaxExpense': 'income_statement',
-            'DepreciationAmortization': 'income_statement',
-            'NonOperatingIncome': 'income_statement',
-            'AssetImpairment': 'income_statement',
-            'RestructuringCharges': 'income_statement',
-        }
+                # --- NUEVOS 7 (Pro Extensions) ---
+                'ResearchAndDevelopment': 'income_statement',
+                'SellingGeneralAdmin': 'income_statement',
+                'TaxExpense': 'income_statement',
+                'DepreciationAmortization': 'income_statement',
+                'NonOperatingIncome': 'income_statement',
+                'AssetImpairment': 'income_statement',
+                'RestructuringCharges': 'income_statement',
+            }
 
-        for field_name, section in income_fields.items():
-            value = self._get_value_by_context(
-                field_name,
-                income_ctx,
-                section
-            )
-            if value:
-                year_data[field_name] = value
+            for field_name, section in income_fields.items():
+                value = self._get_value_by_context(
+                    field_name,
+                    income_ctx,
+                    section
+                )
+                if value:
+                    year_data[field_name] = value
 
-        # ====================================================================
-        # CASH FLOW (duration context) - MICRO-TAREA 3: 5 CONCEPTOS ✅
-        # ====================================================================
-        cashflow_fields = {
-            # --- CORE 2 ---
-            'OperatingCashFlow': 'cash_flow',
-            'CapitalExpenditures': 'cash_flow',
+            # ====================================================================
+            # CASH FLOW (duration context) - MICRO-TAREA 3: 5 CONCEPTOS ✅
+            # ====================================================================
+            cashflow_fields = {
+                # --- CORE 2 ---
+                'OperatingCashFlow': 'cash_flow',
+                'CapitalExpenditures': 'cash_flow',
 
-            # --- NUEVOS 3 (Pro Extensions) ---
-            'DividendsPaid': 'cash_flow',
-            'StockBasedCompensation': 'cash_flow',
-            'ChangeInWorkingCapital': 'cash_flow',
-        }
+                # --- NUEVOS 3 (Pro Extensions) ---
+                'DividendsPaid': 'cash_flow',
+                'StockBasedCompensation': 'cash_flow',
+                'ChangeInWorkingCapital': 'cash_flow',
+            }
 
-        for field_name, section in cashflow_fields.items():
-            value = self._get_value_by_context(
-                field_name,
-                income_ctx,  # Usa income_ctx (duration anual)
-                section
-            )
-            if value:
-                year_data[field_name] = value
+            for field_name, section in cashflow_fields.items():
+                value = self._get_value_by_context(
+                    field_name,
+                    income_ctx,  # Usa income_ctx (duration anual)
+                    section
+                )
+                if value:
+                    year_data[field_name] = value
 
         return year_data
 
@@ -942,10 +1000,10 @@ if __name__ == "__main__":
         print(f"\n⏱️  Tiempo de procesamiento: {processing_time:.2f} segundos")
 
         # ====================================================================
-        # VALIDACIÓN FINAL SPRINT 3 DÍA 4 - MICRO-TAREA 3
+        # VALIDACIÓN FINAL SPRINT 6 - ISSUE #001 FIX
         # ====================================================================
         print("\n" + "="*60)
-        print("✅ VALIDACIÓN SPRINT 3 DÍA 4 - MICRO-TAREA 3")
+        print("✅ VALIDACIÓN SPRINT 6 - ISSUE #001 FIX")
         print("="*60)
 
         checks = {
@@ -966,16 +1024,11 @@ if __name__ == "__main__":
             print(f"   {status} {check}")
 
         if all_passed:
-            print("\n🎯 MICRO-TAREA 3 COMPLETADA")
-            print("   ✓ Cash Flow: 2 → 5 conceptos")
-            print("   ✓ Nuevos campos Pro: Dividends, StockComp, WorkingCapital")
-            print("   ✓ Fuzzy mapping funcionando")
-            print("   ✓ Trazabilidad completa")
+            print("\n🎯 SPRINT 6 - ISSUE #001 FIX COMPLETADO")
+            print("   ✓ Validación relajada: 3/4 core fields")
+            print("   ✓ _get_available_tags() filtrado")
+            print("   ✓ Manejo graceful de income context faltante")
             print(f"   ✓ Performance óptima ({processing_time:.2f}s)")
-            print("\n🏆 INVENTARIO COMPLETO: 33/33 CONCEPTOS (100%)")
-            print("   ✓ Balance Sheet: 18/18")
-            print("   ✓ Income Statement: 13/13")
-            print("   ✓ Cash Flow: 5/5")
         else:
             print("\n⚠️  REVISAR ISSUES:")
             for check, passed in checks.items():

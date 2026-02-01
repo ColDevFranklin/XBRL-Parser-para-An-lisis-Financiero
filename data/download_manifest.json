@@ -127,5 +127,8 @@
     "success": 59,
     "failed": 1,
     "skipped": 20
+  },
+  "failed": {
+    "GOOGL": "No 10-K for 2024"
   }
 }

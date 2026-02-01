@@ -13,6 +13,7 @@ Features:
 
 Author: @franklin (CTO)
 Sprint 5 - Franklin Framework
+Sprint 6 - Multi-Sector Expansion (sector field added)
 """
 
 from dataclasses import dataclass
@@ -35,12 +36,14 @@ class IndustryBenchmark:
         mean: Industry average
         std: Standard deviation
         sample_size: Number of companies in calculation
+        sector: Sector code (e.g., 'TECH', 'MINING') - NEW Sprint 6
 
     Example:
         >>> benchmark = IndustryBenchmark(
         ...     metric_name='ROE',
         ...     p10=8.2, p25=15.3, p50=28.5, p75=45.7, p90=98.3,
-        ...     mean=35.6, std=25.4, sample_size=20
+        ...     mean=35.6, std=25.4, sample_size=20,
+        ...     sector='TECH'
         ... )
         >>> print(f"ROE Top Quartile threshold: {benchmark.p75:.1f}%")
         ROE Top Quartile threshold: 45.7%
@@ -54,10 +57,12 @@ class IndustryBenchmark:
     mean: float
     std: float
     sample_size: int
+    sector: Optional[str] = None  # NEW Sprint 6: Sector identifier
 
     def __repr__(self) -> str:
+        sector_info = f" [{self.sector}]" if self.sector else ""
         return (
-            f"IndustryBenchmark({self.metric_name}: "
+            f"IndustryBenchmark({self.metric_name}{sector_info}: "
             f"P50={self.p50:.1f}, P75={self.p75:.1f}, P90={self.p90:.1f}, "
             f"n={self.sample_size})"
         )
@@ -76,27 +81,31 @@ class StatisticalBenchmarkEngine:
     - NaN-safe operations
     - Result caching for performance
     - Statistical rigor (min 3 companies required)
+    - Sector-aware benchmarking (NEW Sprint 6)
 
     Usage:
         >>> from backend.parsers.sec_downloader import load_json
         >>> sector_data = load_json('outputs/sector_benchmarks_tech.json')
         >>>
-        >>> engine = StatisticalBenchmarkEngine(sector_data)
+        >>> engine = StatisticalBenchmarkEngine(sector_data, sector_code='TECH')
         >>> roe_bench = engine.calculate_benchmarks('profitability', 'ROE')
         >>>
         >>> print(f"Tech Sector ROE Benchmarks:")
         >>> print(f"  P75 (BUY threshold): {roe_bench.p75:.1f}%")
         >>> print(f"  P50 (Median): {roe_bench.p50:.1f}%")
         >>> print(f"  P25 (RED_FLAG threshold): {roe_bench.p25:.1f}%")
+        >>> print(f"  Sector: {roe_bench.sector}")
     """
 
-    def __init__(self, sector_data: Dict[str, Dict]):
+    def __init__(self, sector_data: Dict[str, Dict], sector_code: str = 'TECH'):
         """
         Initialize engine with sector benchmark data
 
         Args:
             sector_data: Dict from generate_sector_benchmarks()
                          Format: {ticker: {category: {metric: np.array}}}
+            sector_code: Sector identifier ('TECH', 'MINING', 'OIL_GAS', 'RETAIL')
+                        NEW Sprint 6 - enables sector tracking
 
         Example:
             >>> sector_data = {
@@ -108,9 +117,10 @@ class StatisticalBenchmarkEngine:
             ...     },
             ...     'MSFT': {...}
             ... }
-            >>> engine = StatisticalBenchmarkEngine(sector_data)
+            >>> engine = StatisticalBenchmarkEngine(sector_data, sector_code='TECH')
         """
         self.sector_data = sector_data
+        self.sector_code = sector_code  # NEW Sprint 6
         self._benchmarks_cache: Dict[str, IndustryBenchmark] = {}
 
     def calculate_benchmarks(
@@ -136,6 +146,7 @@ class StatisticalBenchmarkEngine:
             >>> if benchmark:
             ...     print(f"ROE P90: {benchmark.p90:.1f}%")
             ...     print(f"Sample size: {benchmark.sample_size} companies")
+            ...     print(f"Sector: {benchmark.sector}")
         """
         # Check cache
         cache_key = f"{category}:{metric}"
@@ -158,7 +169,7 @@ class StatisticalBenchmarkEngine:
 
         values_arr = np.array(values)
 
-        # Calculate benchmark
+        # Calculate benchmark (NEW Sprint 6: includes sector)
         benchmark = IndustryBenchmark(
             metric_name=metric,
             p10=float(np.percentile(values_arr, 10)),
@@ -168,7 +179,8 @@ class StatisticalBenchmarkEngine:
             p90=float(np.percentile(values_arr, 90)),
             mean=float(np.mean(values_arr)),
             std=float(np.std(values_arr)),
-            sample_size=len(values)
+            sample_size=len(values),
+            sector=self.sector_code  # NEW Sprint 6
         )
 
         # Cache result
@@ -188,7 +200,7 @@ class StatisticalBenchmarkEngine:
             >>> for category, metrics in all_benchmarks.items():
             ...     print(f"\n{category.upper()}:")
             ...     for metric_name, benchmark in metrics.items():
-            ...         print(f"  {metric_name}: P50={benchmark.p50:.1f}")
+            ...         print(f"  {metric_name}: P50={benchmark.p50:.1f} [{benchmark.sector}]")
         """
         all_benchmarks = {}
 
